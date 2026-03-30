@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pontoor
+    restart: always
+    environment:
+      POSTGRES_DB: pontoor
+      POSTGRES_USER: pontoor
+      POSTGRES_PASSWORD: pontooticarenata
+    ports:
+      - "5433:5432"
+    volumes:
+      - pontoor_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pontoor -d pontoor"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: pontoor_app
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://pontoor:pontooticarenata@postgres:5432/pontoor
+    ports:
+      - "3000:3000"
+
+volumes:
+  pontoor_postgres_data:

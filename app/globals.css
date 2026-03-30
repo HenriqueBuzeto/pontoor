@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ponto-black: #0a0a0a;
+  --ponto-black-soft: #141414;
+  --ponto-orange: #f97316;
+  --ponto-orange-hover: #ea580c;
+  --ponto-orange-glow: rgba(249, 115, 22, 0.25);
+  --ponto-orange-muted: #fff7ed;
+  --ponto-white: #ffffff;
+  --ponto-surface: #fafafa;
+  --ponto-muted: #71717a;
+  --ponto-muted-soft: #a1a1aa;
+  --ponto-border: #e4e4e7;
+  --ponto-border-soft: #f4f4f5;
+  --ponto-success: #22c55e;
+  --ponto-warning: #eab308;
+  --ponto-error: #ef4444;
+  --radius-ponto: 0.5rem;
+  --radius-lux: 0.75rem;
+  --radius-xl: 1rem;
+  --shadow-lux: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lux-md: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-lux-lg: 0 20px 25px -5px rgb(0 0 0 / 0.06), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+  --shadow-orange: 0 4px 14px 0 var(--ponto-orange-glow);
+}
+
+.dark {
+  --ponto-black: #fafafa;
+  --ponto-white: #0a0a0a;
+  --ponto-surface: #141414;
+  --ponto-muted: #a1a1aa;
+  --ponto-border: #27272a;
+  --ponto-orange-muted: #431407;
+}
+
+@layer base {
+  body {
+    @apply bg-ponto-white text-ponto-black antialiased;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .animate-in-fade {
+    animation: fadeIn 0.4s ease-out;
+  }
+  .animate-in-up {
+    animation: fadeInUp 0.5s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Sidebar: scrollbar fina e discreta */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
