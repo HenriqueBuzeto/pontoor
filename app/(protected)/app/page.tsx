@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { listAdjustments } from "@/lib/repositories/adjustments";
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calculations";
+import { getEmployeeById } from "@/lib/repositories/employees";
 import { AppWelcomeHero } from "@/components/app/AppWelcomeHero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
@@ -28,6 +29,11 @@ export default async function AppHomePage() {
   let marksToday = 0;
 
   if (tenantId && employeeId) {
+    const employee = await getEmployeeById(tenantId, employeeId);
+    const admissionDateRaw = employee?.admissionDate ?? null;
+    const admissionDateKey = admissionDateRaw ? String(admissionDateRaw).slice(0, 10) : null;
+    const admissionDate = admissionDateKey ? new Date(`${admissionDateKey}T00:00:00`) : null;
+
     const now = new Date();
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const start = new Date(end);
@@ -93,6 +99,15 @@ export default async function AppHomePage() {
       const key = currentDate.toISOString().slice(0, 10);
       if (isSunday) continue;
 
+      const isBeforeAdmission =
+        !!admissionDate &&
+        currentDate <
+          new Date(
+            admissionDate.getFullYear(),
+            admissionDate.getMonth(),
+            admissionDate.getDate()
+          );
+
       const calc = byDayCalc.get(key);
       const isJustifiedDay = justifiedDays.has(key);
       const isFutureDay = isCurrentMonth && day > today.getDate();
@@ -110,7 +125,9 @@ export default async function AppHomePage() {
         currentDate.getDate() === today.getDate();
 
       let dayBalance = 0;
-      if (calc) {
+      if (isBeforeAdmission) {
+        dayBalance = 0;
+      } else if (calc) {
         const rawBalance = calc.balanceMinutes ?? 0;
         dayBalance = isJustifiedDay
           ? 0
