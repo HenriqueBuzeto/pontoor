@@ -1,6 +1,6 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import { getDb, type Db } from "@/lib/db";
-import { timeEntries, timeCalculations } from "@/lib/db/schema";
+import { employees, timeEntries, timeCalculations, workSchedules } from "@/lib/db/schema";
 
 type Tx = Pick<Db, "select" | "insert" | "update">;
 
@@ -16,7 +16,23 @@ export type DailyCalculationResult = {
   balanceMinutes: number;
   overtimeMinutes: number;
   absent: boolean;
+  complete: boolean;
 };
+
+function parseTimeToHoursMinutes(raw: unknown): { hours: number; minutes: number } | null {
+  if (!raw) return null;
+  const s = String(raw);
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const hours = Number(m[1]);
+  const minutes = Number(m[2]);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return { hours, minutes };
+}
+
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
 
 /** Calcula métricas de jornada para um dia a partir das marcações brutas. */
 function calculateDayFromEntries(
@@ -97,6 +113,12 @@ function calculateDayFromEntries(
     );
   }
 
+  const complete =
+    !isSunday &&
+    ((firstIn && lastOut) || (!firstIn && !lastOut)) &&
+    (!lunchStart || !!lunchEnd) &&
+    (!extraStart || !!extraEnd);
+
   const expectedMinutes = isSunday ? 0 : 8 * 60;
   const balanceMinutes = workedMinutes - expectedMinutes;
   const overtimeMinutes = Math.max(0, balanceMinutes);
@@ -108,6 +130,7 @@ function calculateDayFromEntries(
     balanceMinutes,
     overtimeMinutes,
     absent,
+    complete,
   };
 }
 
@@ -124,6 +147,29 @@ export async function recalculateDayInTransaction(
   const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
   const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 
+  const [employeeRow] = await tx
+    .select({
+      workScheduleId: employees.workScheduleId,
+    })
+    .from(employees)
+    .where(and(eq(employees.tenantId, tenantId), eq(employees.id, employeeId)))
+    .limit(1);
+
+  const scheduleId = employeeRow?.workScheduleId ?? null;
+  const [scheduleRow] = scheduleId
+    ? await tx
+        .select({
+          exitTime: workSchedules.exitTime,
+          entryTime: workSchedules.entryTime,
+          breakMinutes: workSchedules.breakMinutes,
+          dailyHours: workSchedules.dailyHours,
+          workDays: workSchedules.workDays,
+        })
+        .from(workSchedules)
+        .where(and(eq(workSchedules.tenantId, tenantId), eq(workSchedules.id, scheduleId)))
+        .limit(1)
+    : [null];
+
   const entries = await tx
     .select({
       occurredAt: timeEntries.occurredAt,
@@ -139,7 +185,65 @@ export async function recalculateDayInTransaction(
       )
     );
 
-  const calc = calculateDayFromEntries(entries, date);
+  const baseCalc = calculateDayFromEntries(entries, date);
+
+  const currentDay = startOfDay(date);
+  const today = startOfDay(new Date());
+  const isToday = currentDay.getTime() === today.getTime();
+
+  const weekday = currentDay.getDay();
+  const scheduleWorkDays = Array.isArray(scheduleRow?.workDays) ? scheduleRow?.workDays : null;
+  const isWorkDay = scheduleWorkDays ? scheduleWorkDays.includes(weekday) : weekday !== 0;
+  const expectedMinutes = isWorkDay ? (scheduleRow?.dailyHours ?? 8 * 60) : 0;
+
+  let calc: DailyCalculationResult = {
+    ...baseCalc,
+    expectedMinutes,
+    balanceMinutes: baseCalc.workedMinutes - expectedMinutes,
+    overtimeMinutes: Math.max(0, baseCalc.workedMinutes - expectedMinutes),
+    absent: expectedMinutes > 0 && baseCalc.workedMinutes === 0,
+  };
+
+  if (isToday && isWorkDay && !calc.complete) {
+    const now = new Date();
+    const exitHm = parseTimeToHoursMinutes(scheduleRow?.exitTime);
+    const entryHm = parseTimeToHoursMinutes(scheduleRow?.entryTime);
+    const breakMinutes = scheduleRow?.breakMinutes ?? 60;
+
+    let shiftEnd: Date | null = null;
+    if (exitHm) {
+      shiftEnd = new Date(
+        currentDay.getFullYear(),
+        currentDay.getMonth(),
+        currentDay.getDate(),
+        exitHm.hours,
+        exitHm.minutes,
+        0,
+        0
+      );
+    } else if (entryHm && expectedMinutes > 0) {
+      const total = expectedMinutes + breakMinutes;
+      shiftEnd = new Date(
+        currentDay.getFullYear(),
+        currentDay.getMonth(),
+        currentDay.getDate(),
+        entryHm.hours,
+        entryHm.minutes,
+        0,
+        0
+      );
+      shiftEnd = new Date(shiftEnd.getTime() + total * 60000);
+    }
+
+    if (!shiftEnd || now < shiftEnd) {
+      calc = {
+        ...calc,
+        balanceMinutes: 0,
+        overtimeMinutes: 0,
+        absent: false,
+      };
+    }
+  }
 
   console.log("[recalculateDayInTransaction] input", {
     tenantId,
