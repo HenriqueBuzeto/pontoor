@@ -1,4 +1,4 @@
-import { and, eq, gte, lt, asc } from "drizzle-orm";
+import { and, eq, gte, lt, asc, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { timeCalculations } from "@/lib/db/schema";
 
@@ -26,6 +26,47 @@ export async function listDailyCalculationsByEmployee(
       )
     )
     .orderBy(asc(timeCalculations.date));
+}
+
+export async function sumBalanceMinutesByEmployeeInRange(
+  tenantId: string,
+  employeeId: string,
+  fromInclusive: string,
+  toExclusive: string
+) {
+  const db = getDb();
+  const [row] = await db
+    .select({ sum: sql<number>`COALESCE(SUM(${timeCalculations.balanceMinutes}), 0)::int` })
+    .from(timeCalculations)
+    .where(
+      and(
+        eq(timeCalculations.tenantId, tenantId),
+        eq(timeCalculations.employeeId, employeeId),
+        gte(timeCalculations.date, fromInclusive),
+        lt(timeCalculations.date, toExclusive)
+      )
+    );
+  return row?.sum ?? 0;
+}
+
+export async function getDailyCalculationByEmployeeAndDate(
+  tenantId: string,
+  employeeId: string,
+  dateKey: string
+) {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(timeCalculations)
+    .where(
+      and(
+        eq(timeCalculations.tenantId, tenantId),
+        eq(timeCalculations.employeeId, employeeId),
+        eq(timeCalculations.date, dateKey)
+      )
+    )
+    .limit(1);
+  return row ?? null;
 }
 
 /** Lista cálculos diários de todos os colaboradores do tenant no mês (para relatórios gerenciais). */

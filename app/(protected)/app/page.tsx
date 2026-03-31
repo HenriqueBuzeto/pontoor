@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/server";
 import { listAdjustments } from "@/lib/repositories/adjustments";
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
-import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calculations";
+import {
+  getDailyCalculationByEmployeeAndDate,
+  listDailyCalculationsByEmployee,
+  sumBalanceMinutesByEmployeeInRange,
+} from "@/lib/repositories/time-calculations";
 import { getEmployeeById } from "@/lib/repositories/employees";
 import { AppWelcomeHero } from "@/components/app/AppWelcomeHero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +36,6 @@ export default async function AppHomePage() {
     const employee = await getEmployeeById(tenantId, employeeId);
     const admissionDateRaw = employee?.admissionDate ?? null;
     const admissionDateKey = admissionDateRaw ? String(admissionDateRaw).slice(0, 10) : null;
-    const admissionDate = admissionDateKey ? new Date(`${admissionDateKey}T00:00:00`) : null;
 
     const now = new Date();
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -88,63 +91,26 @@ export default async function AppHomePage() {
       byDayCalc.set(key, r);
     }
 
-    let monthBalanceMinutes = 0;
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const today = new Date();
-    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
+    if (admissionDateKey) {
+      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      const tomorrowKey = tomorrow.toISOString().slice(0, 10);
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const currentDate = new Date(year, month - 1, day);
-      const isSunday = currentDate.getDay() === 0;
-      const key = currentDate.toISOString().slice(0, 10);
-      if (isSunday) continue;
+      const total = await sumBalanceMinutesByEmployeeInRange(
+        tenantId,
+        employeeId,
+        admissionDateKey,
+        tomorrowKey
+      );
 
-      const isBeforeAdmission =
-        !!admissionDate &&
-        currentDate <
-          new Date(
-            admissionDate.getFullYear(),
-            admissionDate.getMonth(),
-            admissionDate.getDate()
-          );
+      const todayKey = now.toISOString().slice(0, 10);
+      const todayCalc = await getDailyCalculationByEmployeeAndDate(tenantId, employeeId, todayKey);
+      const todayAdjusted = todayCalc && (todayCalc.balanceMinutes ?? 0) < 0 ? 0 : (todayCalc?.balanceMinutes ?? 0);
+      const totalWithoutToday = total - (todayCalc?.balanceMinutes ?? 0);
 
-      const calc = byDayCalc.get(key);
-      const isJustifiedDay = justifiedDays.has(key);
-      const isFutureDay = isCurrentMonth && day > today.getDate();
-      const isPastDay =
-        currentDate <
-        new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate()
-        );
-      const isToday =
-        isCurrentMonth &&
-        currentDate.getFullYear() === today.getFullYear() &&
-        currentDate.getMonth() === today.getMonth() &&
-        currentDate.getDate() === today.getDate();
-
-      let dayBalance = 0;
-      if (isBeforeAdmission) {
-        dayBalance = 0;
-      } else if (calc) {
-        const rawBalance = calc.balanceMinutes ?? 0;
-        dayBalance = isJustifiedDay
-          ? 0
-          : isToday && rawBalance < 0
-          ? 0
-          : rawBalance;
-      } else {
-        const expectedMinutes = 8 * 60;
-        const shouldCountAsAbsence =
-          isPastDay && !isFutureDay && !isJustifiedDay;
-        dayBalance = shouldCountAsAbsence ? -expectedMinutes : 0;
-      }
-
-      monthBalanceMinutes += dayBalance;
+      bankMinutes = totalWithoutToday + todayAdjusted;
+    } else {
+      bankMinutes = 0;
     }
-
-    bankMinutes = monthBalanceMinutes;
 
     // Dados para os últimos 7 dias (trabalhadas x previstas + saldo do dia)
     const days: { date: Date }[] = [];
