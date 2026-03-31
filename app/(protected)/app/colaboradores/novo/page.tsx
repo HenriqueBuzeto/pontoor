@@ -18,7 +18,13 @@ export default async function NovoColaboradorPage() {
     );
   }
 
-  const nextRegistration = await getNextEmployeeRegistration(tenantId);
+  let nextRegistration: string | undefined;
+  try {
+    nextRegistration = await getNextEmployeeRegistration(tenantId);
+  } catch (e) {
+    console.error("[NovoColaboradorPage] failed to load next registration", e);
+    nextRegistration = undefined;
+  }
 
   return (
     <FormNovoColaborador
