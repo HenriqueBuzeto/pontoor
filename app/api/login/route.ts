@@ -12,6 +12,21 @@ const BodySchema = z.object({
   password: z.string().min(1),
 });
 
+function safeDatabaseInfo() {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return { defined: false as const };
+  try {
+    const u = new URL(raw);
+    return {
+      defined: true as const,
+      host: u.host,
+      db: u.pathname.replace(/^\//, ""),
+    };
+  } catch {
+    return { defined: true as const, host: "(invalid url)", db: "" };
+  }
+}
+
 export async function POST(request: Request) {
   const json = await request.json().catch(() => null);
   const parsed = BodySchema.safeParse(json);
@@ -21,6 +36,13 @@ export async function POST(request: Request) {
 
   const rawLogin = parsed.data.username.trim().toLowerCase();
   const email = rawLogin.includes("@") ? rawLogin : usernameToInternalEmail(rawLogin);
+
+  const dbInfo = safeDatabaseInfo();
+  console.info("[api/login] attempt", {
+    email,
+    db: dbInfo,
+  });
+
   const db = getDb();
   const [u] = await db
     .select({
@@ -33,11 +55,16 @@ export async function POST(request: Request) {
     .limit(1);
 
   if (!u?.id || !u.active || !u.passwordHash) {
+    console.warn("[api/login] denied", {
+      email,
+      reason: !u?.id ? "user_not_found" : !u.active ? "user_inactive" : "missing_password_hash",
+    });
     return NextResponse.json({ error: "Usuário ou senha inválidos" }, { status: 401 });
   }
 
   const ok = verifyPassword(parsed.data.password, u.passwordHash);
   if (!ok) {
+    console.warn("[api/login] denied", { email, reason: "wrong_password" });
     return NextResponse.json({ error: "Usuário ou senha inválidos" }, { status: 401 });
   }
 
