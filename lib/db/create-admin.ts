@@ -1,3 +1,8 @@
+import { config } from "dotenv";
+import { resolve } from "path";
+
+config({ path: resolve(process.cwd(), ".env.local") });
+
 import { eq } from "drizzle-orm";
 import { getDb } from "./index";
 import { tenants, users } from "./schema";

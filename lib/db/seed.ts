@@ -4,6 +4,11 @@
  * Requer DATABASE_URL e que as migrations já tenham sido aplicadas.
  */
 
+import { config } from "dotenv";
+import { resolve } from "path";
+
+config({ path: resolve(process.cwd(), ".env.local") });
+
 import { getDb } from "./index";
 import {
   tenants,
