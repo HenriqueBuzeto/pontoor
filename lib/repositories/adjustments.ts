@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte, lt } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { adjustments } from "@/lib/db/schema";
 import type { NewAdjustment } from "@/lib/db/schema/adjustments";
@@ -6,7 +6,13 @@ import { employees } from "@/lib/db/schema";
 
 export async function listAdjustments(
   tenantId: string,
-  opts: { status?: "pending" | "approved" | "rejected" | "all"; limit?: number; employeeId?: string } = {}
+  opts: {
+    status?: "pending" | "approved" | "rejected" | "all";
+    limit?: number;
+    employeeId?: string;
+    fromDate?: Date;
+    toDate?: Date;
+  } = {}
 ) {
   const db = getDb();
   const limit = opts.limit ?? 50;
@@ -16,6 +22,12 @@ export async function listAdjustments(
   }
   if (opts.employeeId) {
     conditions.push(eq(adjustments.employeeId, opts.employeeId));
+  }
+  if (opts.fromDate) {
+    conditions.push(gte(adjustments.date, opts.fromDate));
+  }
+  if (opts.toDate) {
+    conditions.push(lt(adjustments.date, opts.toDate));
   }
 
   const list = await db

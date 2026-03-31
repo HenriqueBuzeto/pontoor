@@ -42,6 +42,9 @@ export default async function AppHomePage() {
     const start = new Date(end);
     start.setDate(end.getDate() - 6); // últimos 7 dias
 
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const tomorrowKey = tomorrow.toISOString().slice(0, 10);
+
     const [adjustments, recentEntries] = await Promise.all([
       listAdjustments(tenantId, { status: "pending", employeeId, limit: 20 }),
       listTimeEntriesByEmployee(tenantId, employeeId, start, end),
@@ -73,7 +76,9 @@ export default async function AppHomePage() {
       listAdjustments(tenantId, {
         status: "approved",
         employeeId,
-        limit: 500,
+        limit: 200,
+        fromDate: start,
+        toDate: tomorrow,
       }),
     ]);
 
@@ -92,9 +97,6 @@ export default async function AppHomePage() {
     }
 
     if (admissionDateKey) {
-      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      const tomorrowKey = tomorrow.toISOString().slice(0, 10);
-
       const total = await sumBalanceMinutesByEmployeeInRange(
         tenantId,
         employeeId,
