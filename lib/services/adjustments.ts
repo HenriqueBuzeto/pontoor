@@ -7,6 +7,57 @@ import { recalculateDayInTransaction } from "@/lib/services/time-calculation";
 
 type Tx = Pick<Db, "delete" | "insert" | "update" | "select">;
 
+const TZ = "America/Sao_Paulo";
+
+function getYmdInTimeZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = Number(parts.find((p) => p.type === "year")?.value ?? "0");
+  const month = Number(parts.find((p) => p.type === "month")?.value ?? "0");
+  const day = Number(parts.find((p) => p.type === "day")?.value ?? "0");
+  return { year, month, day };
+}
+
+function zonedWallTimeToUtcDate(input: {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  timeZone: string;
+}) {
+  const utcGuess = new Date(
+    Date.UTC(input.year, input.month - 1, input.day, input.hour, input.minute, 0, 0)
+  );
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: input.timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(utcGuess);
+
+  const gotYear = Number(parts.find((p) => p.type === "year")?.value ?? "0");
+  const gotMonth = Number(parts.find((p) => p.type === "month")?.value ?? "0");
+  const gotDay = Number(parts.find((p) => p.type === "day")?.value ?? "0");
+  const gotHour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const gotMinute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  const gotSecond = Number(parts.find((p) => p.type === "second")?.value ?? "0");
+
+  const asUtc = Date.UTC(gotYear, gotMonth - 1, gotDay, gotHour, gotMinute, gotSecond, 0);
+  const offsetMs = asUtc - utcGuess.getTime();
+  return new Date(utcGuess.getTime() - offsetMs);
+}
+
 export type ParsedSchedule = {
   expediente: { start?: string; end?: string };
   almoco: { start?: string; end?: string };
@@ -85,11 +136,18 @@ export function buildEntriesFromSchedule(
   date: Date,
   schedule: ParsedSchedule
 ): { type: NewTimeEntry["type"]; occurredAt: Date }[] {
+  const ymd = getYmdInTimeZone(date, TZ);
+
   const toDate = (time?: string) => {
     if (!time) return null;
     const [h, m] = time.split(":").map((v) => parseInt(v, 10));
     if (Number.isNaN(h) || Number.isNaN(m)) return null;
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m, 0, 0);
+    return zonedWallTimeToUtcDate({
+      ...ymd,
+      hour: h,
+      minute: m,
+      timeZone: TZ,
+    });
   };
 
   const start = toDate(schedule.expediente.start);
