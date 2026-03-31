@@ -1,11 +1,4 @@
 import { getCurrentTenantId } from "@/lib/auth/get-tenant";
-import {
-  listBranches,
-  listDepartments,
-  listTeams,
-  listRoles,
-} from "@/lib/repositories/branches";
-import { listWorkSchedules } from "@/lib/repositories/work-schedules";
 import { getNextEmployeeRegistration } from "@/lib/repositories/employees";
 import { FormNovoColaborador } from "./form-novo-colaborador";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,23 +18,15 @@ export default async function NovoColaboradorPage() {
     );
   }
 
-  const [branches, departments, teams, roles, workSchedules, nextRegistration] =
-    await Promise.all([
-      listBranches(tenantId),
-      listDepartments(tenantId),
-      listTeams(tenantId),
-      listRoles(tenantId),
-      listWorkSchedules(tenantId),
-      getNextEmployeeRegistration(tenantId),
-    ]);
+  const nextRegistration = await getNextEmployeeRegistration(tenantId);
 
   return (
     <FormNovoColaborador
-      branches={branches}
-      departments={departments}
-      teams={teams}
-      roles={roles}
-      workSchedules={workSchedules}
+      branches={[]}
+      departments={[]}
+      teams={[]}
+      roles={[]}
+      workSchedules={[]}
       nextRegistration={nextRegistration}
     />
   );
