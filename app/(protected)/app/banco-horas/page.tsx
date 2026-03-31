@@ -16,6 +16,21 @@ function formatMinutes(m: number) {
   return `${sign}${h}h ${min}min`;
 }
 
+const TZ = "America/Sao_Paulo";
+
+function dateKeySP(d: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function dateFromKey(key: string) {
+  return new Date(`${key}T12:00:00Z`);
+}
+
 type SearchParams = {
   month?: string;
   year?: string;
@@ -118,10 +133,10 @@ export default async function BancoHorasPage({
     const byDayEntries = new Map<string, { date: Date; items: LocalEntry[] }>();
     for (const e of rawEntries) {
       const d = new Date(e.occurredAt);
-      const key = d.toISOString().slice(0, 10);
+      const key = dateKeySP(d);
       const bucket =
         byDayEntries.get(key) ?? {
-          date: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+          date: dateFromKey(key),
           items: [] as LocalEntry[],
         };
       bucket.items.push({ time: d, type: e.type });
@@ -148,7 +163,8 @@ export default async function BancoHorasPage({
     }[] = [];
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const currentDate = new Date(selectedYear, selectedMonth - 1, day);
+      const key = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const currentDate = dateFromKey(key);
       const isSunday = currentDate.getDay() === 0;
       if (isSunday) continue;
 
@@ -161,7 +177,6 @@ export default async function BancoHorasPage({
             admissionDate.getDate()
           );
 
-      const key = currentDate.toISOString().slice(0, 10);
       const calc = byDayCalc.get(key);
       const bucket = byDayEntries.get(key);
       const isJustifiedDay = justifiedDays.has(key);
@@ -382,28 +397,32 @@ export default async function BancoHorasPage({
             <CardContent className="p-0">
               <BancoHorasTabelaAjustes
                 rows={dailyRows.map((r) => ({
-                  date: r.date.toISOString().slice(0, 10),
-                  displayDate: r.date.toLocaleDateString("pt-BR"),
+                  date: dateKeySP(r.date),
+                  displayDate: r.date.toLocaleDateString("pt-BR", { timeZone: TZ }),
                   entry: r.firstIn
                     ? r.firstIn.toLocaleTimeString("pt-BR", {
+                        timeZone: TZ,
                         hour: "2-digit",
                         minute: "2-digit",
                       })
                     : null,
                   exit: r.lastOut
                     ? r.lastOut.toLocaleTimeString("pt-BR", {
+                        timeZone: TZ,
                         hour: "2-digit",
                         minute: "2-digit",
                       })
                     : null,
                   lunchStart: r.lunchStart
                     ? r.lunchStart.toLocaleTimeString("pt-BR", {
+                        timeZone: TZ,
                         hour: "2-digit",
                         minute: "2-digit",
                       })
                     : null,
                   lunchEnd: r.lunchEnd
                     ? r.lunchEnd.toLocaleTimeString("pt-BR", {
+                        timeZone: TZ,
                         hour: "2-digit",
                         minute: "2-digit",
                       })
@@ -411,6 +430,7 @@ export default async function BancoHorasPage({
                   extraStart:
                     r.extraStart && r.extraEnd
                       ? r.extraStart.toLocaleTimeString("pt-BR", {
+                          timeZone: TZ,
                           hour: "2-digit",
                           minute: "2-digit",
                         })
@@ -418,6 +438,7 @@ export default async function BancoHorasPage({
                   extraEnd:
                     r.extraStart && r.extraEnd
                       ? r.extraEnd.toLocaleTimeString("pt-BR", {
+                          timeZone: TZ,
                           hour: "2-digit",
                           minute: "2-digit",
                         })

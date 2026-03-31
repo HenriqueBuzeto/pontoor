@@ -14,6 +14,21 @@ function formatMinutes(m: number) {
   return `${sign}${h}h ${min}min`;
 }
 
+const TZ = "America/Sao_Paulo";
+
+function dateKeySP(d: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function dateFromKey(key: string) {
+  return new Date(`${key}T12:00:00Z`);
+}
+
 export async function GET(req: NextRequest) {
   const tenantId = await getCurrentTenantId();
   if (!tenantId) return new Response("Sem tenant.", { status: 401 });
@@ -60,10 +75,10 @@ export async function GET(req: NextRequest) {
   const byDayEntries = new Map<string, { date: Date; items: LocalEntry[] }>();
   for (const e of rawEntries) {
     const d = new Date(e.occurredAt);
-    const key = d.toISOString().slice(0, 10);
+    const key = dateKeySP(d);
     const bucket =
       byDayEntries.get(key) ?? {
-        date: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+        date: dateFromKey(key),
         items: [] as LocalEntry[],
       };
     bucket.items.push({ time: d, type: e.type });
@@ -89,11 +104,11 @@ export async function GET(req: NextRequest) {
   }[] = [];
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const currentDate = new Date(year, month - 1, day);
+    const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const currentDate = dateFromKey(key);
     const isSunday = currentDate.getDay() === 0;
     if (isSunday) continue;
 
-    const key = currentDate.toISOString().slice(0, 10);
     const calc = byDayCalc.get(key);
     const bucket = byDayEntries.get(key);
     const isJustifiedDay = justifiedDays.has(key);
@@ -189,6 +204,7 @@ export async function GET(req: NextRequest) {
   const formatTime = (d: Date | null) =>
     d
       ? d.toLocaleTimeString("pt-BR", {
+          timeZone: TZ,
           hour: "2-digit",
           minute: "2-digit",
         })
@@ -201,12 +217,12 @@ export async function GET(req: NextRequest) {
     <div style="font-size:18px;font-weight:600;color:#111827;">Banco de Horas</div>
     <div style="font-size:12px;color:#6b7280;">Período: ${periodLabel}</div>
   </div>
-  <div style="font-size:11px;color:#9ca3af;">Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+  <div style="font-size:11px;color:#9ca3af;">Gerado em ${new Date().toLocaleString("pt-BR", { timeZone: TZ })}</div>
 </header>`;
 
     const bodyRows = dailyRows
       .map((r) => {
-        const data = r.date.toLocaleDateString("pt-BR");
+        const data = r.date.toLocaleDateString("pt-BR", { timeZone: TZ });
         return `<tr>
   <td>${data}</td>
   <td>${formatTime(r.firstIn)}</td>
@@ -285,7 +301,7 @@ export async function GET(req: NextRequest) {
   ].join(";");
 
   const rowsCsv = dailyRows.map((r) => {
-    const data = r.date.toLocaleDateString("pt-BR");
+    const data = r.date.toLocaleDateString("pt-BR", { timeZone: TZ });
     const entrada = formatTime(r.firstIn);
     const saida = formatTime(r.lastOut);
     const almocoInicio = formatTime(r.lunchStart);

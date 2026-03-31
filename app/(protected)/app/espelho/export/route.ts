@@ -3,6 +3,8 @@ import { getCurrentTenantId } from "@/lib/auth/get-tenant";
 import { listEmployees } from "@/lib/repositories/employees";
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 
+const TZ = "America/Sao_Paulo";
+
 export async function GET(req: NextRequest) {
   const tenantId = await getCurrentTenantId();
   if (!tenantId) {
@@ -37,8 +39,8 @@ export async function GET(req: NextRequest) {
 
   const rows = entries.map((e) => {
     const d = new Date(e.occurredAt);
-    const data = d.toLocaleDateString("pt-BR");
-    const hora = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const data = d.toLocaleDateString("pt-BR", { timeZone: TZ });
+    const hora = d.toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
     return [
       emp?.name ?? "",
       emp?.registration ?? "",

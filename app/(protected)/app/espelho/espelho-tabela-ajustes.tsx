@@ -15,6 +15,21 @@ type Props = {
   entries: Entry[];
 };
 
+const TZ = "America/Sao_Paulo";
+
+function dateKeySP(d: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+function dateFromKey(key: string) {
+  return new Date(`${key}T12:00:00Z`);
+}
+
 const TYPE_LABEL: Record<string, string> = {
   clock_in: "Entrada",
   clock_out: "Saída",
@@ -52,10 +67,10 @@ export function EspelhoTabelaAjustes({ entries }: Props) {
 
   for (const e of entries) {
     const d = new Date(e.occurredAt);
-    const key = d.toISOString().slice(0, 10);
+    const key = dateKeySP(d);
     const bucket =
       groups.get(key) ?? {
-        date: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+        date: dateFromKey(key),
         items: [] as { time: Date; type: string }[],
       };
     bucket.items.push({ time: d, type: e.type });
@@ -97,7 +112,7 @@ export function EspelhoTabelaAjustes({ entries }: Props) {
         <tbody>
           {days.map((day) => {
             const isExpanded = expandedDate === day.key;
-            const displayDate = day.date.toLocaleDateString("pt-BR");
+            const displayDate = day.date.toLocaleDateString("pt-BR", { timeZone: TZ });
 
             return (
               <tr key={day.key} className="border-b border-ponto-border/50 align-top">
@@ -106,6 +121,7 @@ export function EspelhoTabelaAjustes({ entries }: Props) {
                   <div className="flex flex-wrap gap-1.5">
                     {day.items.map((item, idx) => {
                       const timeLabel = item.time.toLocaleTimeString("pt-BR", {
+                        timeZone: TZ,
                         hour: "2-digit",
                         minute: "2-digit",
                       });
