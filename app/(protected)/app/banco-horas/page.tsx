@@ -4,6 +4,7 @@ import { listAllBalances } from "@/lib/repositories/hour-bank";
 import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calculations";
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { listAdjustments } from "@/lib/repositories/adjustments";
+import { getEmployeeById } from "@/lib/repositories/employees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BancoHorasTabelaAjustes } from "./banco-horas-tabela-ajustes";
 
@@ -30,6 +31,11 @@ export default async function BancoHorasPage({
   const employeeId = user?.employeeId ?? null;
   const isAdmin =
     user?.role === "admin" || user?.role === "super_admin";
+
+  const employee = tenantId && employeeId ? await getEmployeeById(tenantId, employeeId) : null;
+  const admissionDateRaw = employee?.admissionDate ?? null;
+  const admissionDateKey = admissionDateRaw ? String(admissionDateRaw).slice(0, 10) : null;
+  const admissionDate = admissionDateKey ? new Date(`${admissionDateKey}T00:00:00`) : null;
 
   const params = await searchParams;
   const now = new Date();
@@ -146,6 +152,15 @@ export default async function BancoHorasPage({
       const isSunday = currentDate.getDay() === 0;
       if (isSunday) continue;
 
+      const isBeforeAdmission =
+        !!admissionDate &&
+        currentDate <
+          new Date(
+            admissionDate.getFullYear(),
+            admissionDate.getMonth(),
+            admissionDate.getDate()
+          );
+
       const key = currentDate.toISOString().slice(0, 10);
       const calc = byDayCalc.get(key);
       const bucket = byDayEntries.get(key);
@@ -156,7 +171,10 @@ export default async function BancoHorasPage({
       let workedMinutes = 0;
       let dayBalanceMinutes = 0;
 
-      if (calc) {
+      if (isBeforeAdmission) {
+        workedMinutes = 0;
+        dayBalanceMinutes = 0;
+      } else if (calc) {
         workedMinutes = calc.workedMinutes ?? 0;
         const rawBalance = calc.balanceMinutes ?? 0;
         const isToday =
