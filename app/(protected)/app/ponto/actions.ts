@@ -5,6 +5,74 @@ import { createTimeEntry, listTimeEntriesByEmployee } from "@/lib/repositories/t
 import { getCurrentUser } from "@/lib/auth/server";
 import { headers } from "next/headers";
 
+const TZ = "America/Sao_Paulo";
+
+function getYmdInTimeZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = Number(parts.find((p) => p.type === "year")?.value ?? "0");
+  const month = Number(parts.find((p) => p.type === "month")?.value ?? "0");
+  const day = Number(parts.find((p) => p.type === "day")?.value ?? "0");
+  return { year, month, day };
+}
+
+function zonedWallTimeToUtcDate(input: {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second?: number;
+  ms?: number;
+  timeZone: string;
+}) {
+  const utcGuess = new Date(
+    Date.UTC(
+      input.year,
+      input.month - 1,
+      input.day,
+      input.hour,
+      input.minute,
+      input.second ?? 0,
+      input.ms ?? 0
+    )
+  );
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: input.timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(utcGuess);
+
+  const gotYear = Number(parts.find((p) => p.type === "year")?.value ?? "0");
+  const gotMonth = Number(parts.find((p) => p.type === "month")?.value ?? "0");
+  const gotDay = Number(parts.find((p) => p.type === "day")?.value ?? "0");
+  const gotHour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const gotMinute = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+  const gotSecond = Number(parts.find((p) => p.type === "second")?.value ?? "0");
+
+  const asUtc = Date.UTC(gotYear, gotMonth - 1, gotDay, gotHour, gotMinute, gotSecond, 0);
+  const offsetMs = asUtc - utcGuess.getTime();
+  return new Date(utcGuess.getTime() - offsetMs);
+}
+
+function getDayRangeInTZ(date: Date) {
+  const ymd = getYmdInTimeZone(date, TZ);
+  const start = zonedWallTimeToUtcDate({ ...ymd, hour: 0, minute: 0, second: 0, ms: 0, timeZone: TZ });
+  const end = zonedWallTimeToUtcDate({ ...ymd, hour: 23, minute: 59, second: 59, ms: 999, timeZone: TZ });
+  return { start, end };
+}
+
 function validateNextTimeEntry(
   entries: { type: string; occurredAt: Date }[],
   nextType: string
@@ -104,24 +172,7 @@ export async function registerTimeEntry(formData: FormData): Promise<Result> {
     undefined;
   const userAgent = headersList.get("user-agent") ?? undefined;
 
-  const start = new Date(
-    parsed.data.occurredAt.getFullYear(),
-    parsed.data.occurredAt.getMonth(),
-    parsed.data.occurredAt.getDate(),
-    0,
-    0,
-    0,
-    0
-  );
-  const end = new Date(
-    parsed.data.occurredAt.getFullYear(),
-    parsed.data.occurredAt.getMonth(),
-    parsed.data.occurredAt.getDate(),
-    23,
-    59,
-    59,
-    999
-  );
+  const { start, end } = getDayRangeInTZ(parsed.data.occurredAt);
   const existing = await listTimeEntriesByEmployee(tenantId, employeeId, start, end);
   const validationError = validateNextTimeEntry(
     existing.map((e) => ({ type: e.type, occurredAt: e.occurredAt })),
@@ -168,8 +219,7 @@ export async function getTodayEntries(): Promise<TodayEntry[]> {
   if (!tenantId || !employeeId) return [];
 
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const { start, end } = getDayRangeInTZ(now);
 
   const list = await listTimeEntriesByEmployee(tenantId, employeeId, start, end);
   return list.map((e) => ({

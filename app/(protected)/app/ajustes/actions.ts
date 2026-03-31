@@ -79,7 +79,7 @@ export async function createAdjustmentAction(
   let date: Date;
   try {
     // data vem como YYYY-MM-DD
-    date = new Date(`${dateStr}T00:00:00`);
+    date = new Date(`${dateStr}T12:00:00Z`);
     if (Number.isNaN(date.getTime())) throw new Error("Data inválida");
   } catch {
     return { error: "Data inválida." };
