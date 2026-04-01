@@ -122,8 +122,13 @@ export default function LoginClient() {
                 {loading ? "Entrando…" : "Entrar"}
               </Button>
 
-              <Button asChild variant="secondary" size="lg" className="w-full">
-                <Link href="/totem">Registrar ponto (Totem)</Link>
+              <Button
+                asChild
+                variant="secondary"
+                size="lg"
+                className="w-full border border-ponto-orange/30 bg-gradient-to-r from-ponto-black to-ponto-black-soft text-white shadow-[0_10px_35px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:shadow-[0_16px_45px_rgba(249,115,22,0.18)]"
+              >
+                <Link href="/totem">Registro de Ponto</Link>
               </Button>
             </form>
 

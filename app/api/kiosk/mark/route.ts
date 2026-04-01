@@ -21,11 +21,15 @@ function requireTenantId() {
 }
 
 function requireKioskToken(raw: string) {
-  const expected = process.env.KIOSK_TOKEN;
+  const expected = process.env.KIOSK_TOKEN?.trim();
   if (!expected) {
     return true;
   }
   return !!raw && raw === expected;
+}
+
+function isKioskTokenEnabled() {
+  return !!process.env.KIOSK_TOKEN?.trim();
 }
 
 function getYmdInTimeZone(date: Date, timeZone: string) {
@@ -156,7 +160,10 @@ export async function POST(req: NextRequest) {
   const token = getKioskTokenFromRequest(req);
   const tokenOk = requireKioskToken(token);
   if (!tokenOk) {
-    return NextResponse.json({ ok: false, error: "Totem não autorizado." }, { status: 401 });
+    const msg = isKioskTokenEnabled()
+      ? "Totem não autorizado. Verifique o KIOSK_TOKEN na Vercel (ou remova para acesso aberto)."
+      : "Totem não autorizado.";
+    return NextResponse.json({ ok: false, error: msg }, { status: 401 });
   }
 
   const tenantId = requireTenantId();

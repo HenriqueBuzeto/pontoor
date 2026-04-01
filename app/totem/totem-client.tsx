@@ -113,7 +113,7 @@ export default function TotemClient() {
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#050509] px-4 py-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.28),transparent_55%),radial-gradient(circle_at_bottom,rgba(15,23,42,0.95),transparent_65%)]" />
 
-      <div className="relative w-full max-w-3xl space-y-6">
+      <div className="relative w-full max-w-4xl space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-white">Totem de Ponto</h1>
@@ -126,7 +126,7 @@ export default function TotemClient() {
           </Link>
         </div>
 
-        <Card className="overflow-hidden border-white/15 bg-white/10 backdrop-blur-xl">
+        <Card className="overflow-hidden border-white/15 bg-white/10 shadow-[0_26px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
           <CardContent className="p-6 text-center">
             <p className="text-sm font-medium text-white/70">Data e hora atuais</p>
             <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
@@ -138,7 +138,7 @@ export default function TotemClient() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/15 bg-white/95 shadow-[0_18px_45px_rgba(15,23,42,0.18)]">
+        <Card className="border-white/15 bg-white/95 shadow-[0_18px_55px_rgba(15,23,42,0.22)]">
           <CardHeader className="border-b border-ponto-border/40">
             <CardTitle className="text-base">Identificação</CardTitle>
           </CardHeader>
@@ -148,9 +148,9 @@ export default function TotemClient() {
               <div className="flex gap-2">
                 <Input
                   value={registration}
-                  onChange={(e) => setRegistration(e.target.value)}
-                  placeholder="Ex: 001"
-                  className="border-ponto-border"
+                  onChange={(e) => setRegistration(e.target.value.toUpperCase())}
+                  placeholder="Ex: 001 ou ADM001"
+                  className="border-ponto-border bg-white"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -159,11 +159,20 @@ export default function TotemClient() {
                     }
                   }}
                 />
-                <Button type="button" disabled={loading || !readyForLookup} onClick={lookup} className="gap-2">
+                <Button
+                  type="button"
+                  disabled={loading || !readyForLookup}
+                  onClick={lookup}
+                  className="gap-2 min-w-28"
+                  size="lg"
+                >
                   <UserRound className="h-4 w-4" />
                   Buscar
                 </Button>
               </div>
+              <p className="mt-1 text-xs text-ponto-muted">
+                Dica: você pode digitar somente os 3 últimos dígitos (ex.: 001) ou o código completo (ex.: ADM001).
+              </p>
             </div>
 
             {employee && (
