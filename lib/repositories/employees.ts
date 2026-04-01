@@ -86,7 +86,7 @@ export async function getNextEmployeeRegistration(tenantId: string): Promise<str
   const db = getDb();
   const [row] = await db
     .select({
-      max: sql<number>`COALESCE(MAX(registration::int), 0)`,
+      max: sql<number>`COALESCE(MAX(COALESCE(NULLIF(regexp_replace(${employees.registration}, '\\D', '', 'g'), ''), '0')::int), 0)`,
     })
     .from(employees)
     .where(eq(employees.tenantId, tenantId));
