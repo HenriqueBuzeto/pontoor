@@ -121,6 +121,10 @@ export default function LoginClient() {
               >
                 {loading ? "Entrando…" : "Entrar"}
               </Button>
+
+              <Button asChild variant="secondary" size="lg" className="w-full">
+                <Link href="/totem">Registrar ponto (Totem)</Link>
+              </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-zinc-400">

@@ -200,12 +200,20 @@ export default async function EspelhoPage({ searchParams }: Props) {
           {effectiveEmployeeId && consolidatedEntries.length > 0 && (
             <div className="border-t border-ponto-border px-4 py-3 flex items-center justify-between text-sm">
               <p className="text-ponto-muted">Exporte o espelho para conferência ou envio ao RH.</p>
-              <a
-                href={`/app/espelho/export?employeeId=${effectiveEmployeeId}&month=${month}&year=${year}`}
-                className="inline-flex items-center rounded-full bg-ponto-orange px-4 py-1.5 text-xs font-medium text-white shadow-sm shadow-ponto-orange/40 hover:bg-ponto-orange/90 hover:shadow-md hover:shadow-ponto-orange/50 transition-all"
-              >
-                Exportar Excel
-              </a>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/app/espelho/pdf?employeeId=${effectiveEmployeeId}&month=${month}&year=${year}`}
+                  className="inline-flex items-center rounded-full bg-ponto-black px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-ponto-black/90 transition-all"
+                >
+                  PDF
+                </a>
+                <a
+                  href={`/app/espelho/export?employeeId=${effectiveEmployeeId}&month=${month}&year=${year}`}
+                  className="inline-flex items-center rounded-full bg-ponto-orange px-4 py-1.5 text-xs font-medium text-white shadow-sm shadow-ponto-orange/40 hover:bg-ponto-orange/90 hover:shadow-md hover:shadow-ponto-orange/50 transition-all"
+                >
+                  Exportar Excel
+                </a>
+              </div>
             </div>
           )}
         </CardContent>
