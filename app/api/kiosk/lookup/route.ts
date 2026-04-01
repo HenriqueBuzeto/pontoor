@@ -15,21 +15,6 @@ function requireTenantId() {
   return tenantId;
 }
 
-function requireKioskToken(raw: string) {
-  const expected = process.env.KIOSK_TOKEN?.trim();
-  if (!expected) {
-    return true;
-  }
-  if (!raw || raw !== expected) {
-    return false;
-  }
-  return true;
-}
-
-function isKioskTokenEnabled() {
-  return !!process.env.KIOSK_TOKEN?.trim();
-}
-
 function normalizeRegistrationCandidates(input: string) {
   const raw = input.trim();
   const upper = raw.toUpperCase();
@@ -48,15 +33,6 @@ function normalizeRegistrationCandidates(input: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const token = getKioskTokenFromRequest(req);
-  const tokenOk = requireKioskToken(token);
-  if (!tokenOk) {
-    const msg = isKioskTokenEnabled()
-      ? "Totem não autorizado. Verifique o KIOSK_TOKEN na Vercel (ou remova para acesso aberto)."
-      : "Totem não autorizado.";
-    return NextResponse.json({ ok: false, error: msg }, { status: 401 });
-  }
-
   const tenantId = requireTenantId();
   if (!tenantId) {
     return NextResponse.json({ ok: false, error: "Modo Totem não configurado." }, { status: 500 });
