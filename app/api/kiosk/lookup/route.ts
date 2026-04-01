@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmployeeByRegistration } from "@/lib/repositories/employees";
+import { getDb } from "@/lib/db";
+import { tenants } from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
-function getKioskTokenFromRequest(req: NextRequest) {
-  return req.headers.get("x-kiosk-token") ?? "";
-}
+async function resolveTenantId() {
+  const configured = process.env.KIOSK_TENANT_ID;
+  if (configured?.trim()) return configured.trim();
 
-function requireTenantId() {
-  const tenantId = process.env.KIOSK_TENANT_ID;
-  if (!tenantId) {
-    return null;
-  }
-  return tenantId;
+  const db = getDb();
+  const rows = await db
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.active, true))
+    .orderBy(desc(tenants.createdAt))
+    .limit(2);
+
+  if (rows.length === 1) return rows[0].id;
+  return null;
 }
 
 function normalizeRegistrationCandidates(input: string) {
@@ -33,9 +40,16 @@ function normalizeRegistrationCandidates(input: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const tenantId = requireTenantId();
+  const tenantId = await resolveTenantId();
   if (!tenantId) {
-    return NextResponse.json({ ok: false, error: "Modo Totem não configurado." }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Modo Totem não configurado. Configure KIOSK_TENANT_ID (ou mantenha apenas 1 tenant ativo para auto-detecção).",
+      },
+      { status: 500 }
+    );
   }
 
   const json = (await req.json().catch(() => null)) as { registration?: string } | null;
