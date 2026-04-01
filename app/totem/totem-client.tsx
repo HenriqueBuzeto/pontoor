@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
@@ -17,7 +17,7 @@ const types = [
 ] as const;
 
 type LookupResponse =
-  | { ok: true; employee: { id: string; name: string; registration: string } }
+  | { ok: true; employee: { id: string; tenantId: string; name: string; registration: string } }
   | { ok: false; error: string };
 
 type MarkResponse = { ok: true; id: string } | { ok: false; error: string };
@@ -25,10 +25,11 @@ type MarkResponse = { ok: true; id: string } | { ok: false; error: string };
 export default function TotemClient() {
   const [now, setNow] = useState(() => new Date());
   const [registration, setRegistration] = useState("");
-  const [employee, setEmployee] = useState<{ id: string; name: string; registration: string } | null>(null);
+  const [employee, setEmployee] = useState<{ id: string; tenantId: string; name: string; registration: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastMark, setLastMark] = useState<{ type: string; at: Date } | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 1000);
@@ -37,6 +38,18 @@ export default function TotemClient() {
 
   const readyForLookup = useMemo(() => registration.trim().length >= 1, [registration]);
   const readyForMark = useMemo(() => !!employee?.id, [employee]);
+
+  function resetToStart() {
+    setEmployee(null);
+    setRegistration("");
+    setLastMark(null);
+    setError(null);
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 10);
+  }
 
   async function lookup() {
     setError(null);
@@ -59,18 +72,28 @@ export default function TotemClient() {
       if (!res.ok || !data || !data.ok) {
         const msg = data && "error" in data ? data.error : "Não foi possível localizar o colaborador.";
         setError(msg);
-        return;
+        return null;
       }
       setEmployee(data.employee);
+      return data.employee;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao conectar.");
+      return null;
     } finally {
       setLoading(false);
     }
   }
 
+  async function ensureEmployee() {
+    if (employee?.id) return employee;
+    return lookup();
+  }
+
   async function mark(type: string) {
-    if (!employee) return;
+    if (loading) return;
+
+    const emp = await ensureEmployee();
+    if (!emp?.id) return;
 
     setError(null);
     setLoading(true);
@@ -82,7 +105,7 @@ export default function TotemClient() {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ employeeId: employee.id, type, occurredAt: at.toISOString() }),
+        body: JSON.stringify({ employeeId: emp.id, type, occurredAt: at.toISOString() }),
       });
 
       const data = (await res.json().catch(() => null)) as MarkResponse | null;
@@ -99,9 +122,8 @@ export default function TotemClient() {
       setLastMark({ type, at });
 
       setTimeout(() => {
-        setEmployee(null);
-        setRegistration("");
-      }, 2500);
+        resetToStart();
+      }, 1500);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao conectar.");
     } finally {
@@ -147,6 +169,7 @@ export default function TotemClient() {
               <label className="mb-1 block text-sm font-medium text-ponto-black">Matrícula</label>
               <div className="flex gap-2">
                 <Input
+                  ref={inputRef}
                   value={registration}
                   onChange={(e) => setRegistration(e.target.value.toUpperCase())}
                   placeholder="Ex: 001 ou ADM001"
