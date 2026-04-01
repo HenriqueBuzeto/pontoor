@@ -19,7 +19,6 @@ async function resolveTenantId() {
   const rows = await db
     .select({ id: tenants.id })
     .from(tenants)
-    .where(eq(tenants.active, true))
     .orderBy(desc(tenants.createdAt))
     .limit(2);
 
