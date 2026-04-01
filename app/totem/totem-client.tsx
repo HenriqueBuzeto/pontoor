@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Coffee, LogIn, LogOut, Shield, UserRound } from "lucide-react";
+import { CheckCircle2, Coffee, LogIn, LogOut, UserRound } from "lucide-react";
 
 const types = [
   { id: "clock_in", label: "Entrada", icon: LogIn },
@@ -22,32 +22,13 @@ type LookupResponse =
 
 type MarkResponse = { ok: true; id: string } | { ok: false; error: string };
 
-function getStoredToken() {
-  try {
-    return window.localStorage.getItem("ponto_or_kiosk_token") ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function setStoredToken(value: string) {
-  try {
-    window.localStorage.setItem("ponto_or_kiosk_token", value);
-  } catch {}
-}
-
 export default function TotemClient() {
   const [now, setNow] = useState(() => new Date());
-  const [token, setToken] = useState("");
   const [registration, setRegistration] = useState("");
   const [employee, setEmployee] = useState<{ id: string; name: string; registration: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastMark, setLastMark] = useState<{ type: string; at: Date } | null>(null);
-
-  useEffect(() => {
-    setToken(getStoredToken());
-  }, []);
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 1000);
@@ -71,7 +52,6 @@ export default function TotemClient() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-kiosk-token": token,
         },
         body: JSON.stringify({ registration: reg }),
       });
@@ -101,7 +81,6 @@ export default function TotemClient() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-kiosk-token": token,
         },
         body: JSON.stringify({ employeeId: employee.id, type, occurredAt: at.toISOString() }),
       });
@@ -128,12 +107,6 @@ export default function TotemClient() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function saveToken() {
-    const t = token.trim();
-    setToken(t);
-    setStoredToken(t);
   }
 
   return (
@@ -170,47 +143,26 @@ export default function TotemClient() {
             <CardTitle className="text-base">Identificação</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-5">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-1">
-                <label className="mb-1 block text-sm font-medium text-ponto-black">
-                  Código do Totem
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    placeholder="PIN do totem"
-                    type="password"
-                    className="border-ponto-border"
-                  />
-                  <Button type="button" variant="secondary" onClick={saveToken} className="gap-2">
-                    <Shield className="h-4 w-4" />
-                    Salvar
-                  </Button>
-                </div>
-                <p className="mt-1 text-xs text-ponto-muted">Salvo apenas neste computador.</p>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-ponto-black">Matrícula</label>
-                <div className="flex gap-2">
-                  <Input
-                    value={registration}
-                    onChange={(e) => setRegistration(e.target.value)}
-                    placeholder="Ex: 001"
-                    className="border-ponto-border"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (readyForLookup) lookup();
-                      }
-                    }}
-                  />
-                  <Button type="button" disabled={loading || !readyForLookup} onClick={lookup} className="gap-2">
-                    <UserRound className="h-4 w-4" />
-                    Buscar
-                  </Button>
-                </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ponto-black">Matrícula</label>
+              <div className="flex gap-2">
+                <Input
+                  value={registration}
+                  onChange={(e) => setRegistration(e.target.value)}
+                  placeholder="Ex: 001"
+                  className="border-ponto-border"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (readyForLookup) lookup();
+                    }
+                  }}
+                />
+                <Button type="button" disabled={loading || !readyForLookup} onClick={lookup} className="gap-2">
+                  <UserRound className="h-4 w-4" />
+                  Buscar
+                </Button>
               </div>
             </div>
 

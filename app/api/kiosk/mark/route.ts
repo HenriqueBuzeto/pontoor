@@ -23,7 +23,7 @@ function requireTenantId() {
 function requireKioskToken(raw: string) {
   const expected = process.env.KIOSK_TOKEN;
   if (!expected) {
-    return null;
+    return true;
   }
   return !!raw && raw === expected;
 }
@@ -155,9 +155,6 @@ function validateNextTimeEntry(entries: { type: string; occurredAt: Date }[], ne
 export async function POST(req: NextRequest) {
   const token = getKioskTokenFromRequest(req);
   const tokenOk = requireKioskToken(token);
-  if (tokenOk === null) {
-    return NextResponse.json({ ok: false, error: "Modo Totem não configurado." }, { status: 500 });
-  }
   if (!tokenOk) {
     return NextResponse.json({ ok: false, error: "Totem não autorizado." }, { status: 401 });
   }

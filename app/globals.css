@@ -38,7 +38,7 @@
 
 @layer base {
   body {
-    @apply bg-ponto-white text-ponto-black antialiased;
+    @apply bg-ponto-white text-ponto-black antialiased overflow-x-hidden;
   }
 }
 
