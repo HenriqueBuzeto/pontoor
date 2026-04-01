@@ -62,6 +62,19 @@ export async function getEmployeeByRegistration(tenantId: string, registration: 
   return row ?? null;
 }
 
+export async function getEmployeeByRegistrationAnyTenant(registration: string) {
+  const db = getDb();
+  const normalized = registration.trim();
+  if (!normalized) return null;
+  const [row] = await db
+    .select()
+    .from(employees)
+    .where(and(eq(employees.registration, normalized), isNull(employees.deletedAt)))
+    .orderBy(desc(employees.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function createEmployee(tenantId: string, data: NewEmployee) {
   const db = getDb();
   const [created] = await db.insert(employees).values({ ...data, tenantId }).returning();

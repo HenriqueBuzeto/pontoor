@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEmployeeByRegistration } from "@/lib/repositories/employees";
-import { getDb } from "@/lib/db";
-import { tenants } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { getEmployeeByRegistrationAnyTenant } from "@/lib/repositories/employees";
 
 export const runtime = "nodejs";
-
-async function resolveTenantId() {
-  const configured = process.env.KIOSK_TENANT_ID;
-  if (configured?.trim()) return configured.trim();
-
-  const db = getDb();
-  const rows = await db
-    .select({ id: tenants.id })
-    .from(tenants)
-    .orderBy(desc(tenants.createdAt))
-    .limit(2);
-
-  if (rows.length === 1) return rows[0].id;
-  return null;
-}
 
 function normalizeRegistrationCandidates(input: string) {
   const raw = input.trim();
@@ -39,18 +21,6 @@ function normalizeRegistrationCandidates(input: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const tenantId = await resolveTenantId();
-  if (!tenantId) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Modo Totem não configurado. Configure KIOSK_TENANT_ID (ou mantenha apenas 1 tenant ativo para auto-detecção).",
-      },
-      { status: 500 }
-    );
-  }
-
   const json = (await req.json().catch(() => null)) as { registration?: string } | null;
   const registration = (json?.registration ?? "").trim();
 
@@ -60,10 +30,10 @@ export async function POST(req: NextRequest) {
 
   const candidates = normalizeRegistrationCandidates(registration);
 
-  let emp = null as Awaited<ReturnType<typeof getEmployeeByRegistration>>;
+  let emp = null as Awaited<ReturnType<typeof getEmployeeByRegistrationAnyTenant>>;
   for (const c of candidates) {
     // eslint-disable-next-line no-await-in-loop
-    const found = await getEmployeeByRegistration(tenantId, c);
+    const found = await getEmployeeByRegistrationAnyTenant(c);
     if (found?.id) {
       emp = found;
       break;
@@ -76,6 +46,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    employee: { id: emp.id, name: emp.name, registration: emp.registration },
+    employee: { id: emp.id, tenantId: emp.tenantId, name: emp.name, registration: emp.registration },
   });
 }

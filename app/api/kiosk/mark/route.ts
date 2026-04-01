@@ -4,26 +4,21 @@ import { headers } from "next/headers";
 import { createTimeEntry, listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { timeEntrySchema } from "@/lib/validations/time-entry";
 import { getDb } from "@/lib/db";
-import { tenants } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { employees } from "@/lib/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
 const TZ = "America/Sao_Paulo";
 
-async function resolveTenantId() {
-  const configured = process.env.KIOSK_TENANT_ID;
-  if (configured?.trim()) return configured.trim();
-
+async function getEmployeeTenant(employeeId: string) {
   const db = getDb();
-  const rows = await db
-    .select({ id: tenants.id })
-    .from(tenants)
-    .orderBy(desc(tenants.createdAt))
-    .limit(2);
-
-  if (rows.length === 1) return rows[0].id;
-  return null;
+  const [row] = await db
+    .select({ tenantId: employees.tenantId })
+    .from(employees)
+    .where(and(eq(employees.id, employeeId), isNull(employees.deletedAt)))
+    .limit(1);
+  return row?.tenantId ?? null;
 }
 
 function getYmdInTimeZone(date: Date, timeZone: string) {
@@ -151,18 +146,6 @@ function validateNextTimeEntry(entries: { type: string; occurredAt: Date }[], ne
 }
 
 export async function POST(req: NextRequest) {
-  const tenantId = await resolveTenantId();
-  if (!tenantId) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Modo Totem não configurado. Configure KIOSK_TENANT_ID (ou mantenha apenas 1 tenant ativo para auto-detecção).",
-      },
-      { status: 500 }
-    );
-  }
-
   const json = await req.json().catch(() => null);
   const raw = {
     type: json?.type,
@@ -171,8 +154,13 @@ export async function POST(req: NextRequest) {
   };
 
   const employeeId = String(json?.employeeId ?? "");
-  if (!employeeId || !/^[0-9a-f-]{36}$/i.test(employeeId)) {
+  if (!employeeId) {
     return NextResponse.json({ ok: false, error: "Colaborador inválido." }, { status: 400 });
+  }
+
+  const tenantId = await getEmployeeTenant(employeeId);
+  if (!tenantId) {
+    return NextResponse.json({ ok: false, error: "Colaborador não encontrado." }, { status: 404 });
   }
 
   const parsed = timeEntrySchema.safeParse(raw);
