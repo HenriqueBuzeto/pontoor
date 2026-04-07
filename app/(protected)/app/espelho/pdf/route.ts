@@ -135,6 +135,24 @@ function minutesBetween(a: { hour: number; minute: number }, b: { hour: number; 
   return (b.hour * 60 + b.minute) - (a.hour * 60 + a.minute);
 }
 
+function dateToDateKey(input: unknown) {
+  if (!input) return "";
+  if (typeof input === "string") {
+    // normalmente já vem como YYYY-MM-DD
+    return input.slice(0, 10);
+  }
+  if (input instanceof Date) {
+    // date (sem timezone) pode vir como Date; usa UTC para não deslocar o dia
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(input);
+  }
+  return String(input).slice(0, 10);
+}
+
 function buildHtml(params: {
   tenantName: string;
   employeeName: string;
@@ -417,6 +435,12 @@ export async function GET(req: NextRequest) {
     byDateKey.set(key, arr);
   }
 
+  const calcsByKey = new Map<string, (typeof calcs)[number]>();
+  for (const c of calcs) {
+    const k = dateToDateKey((c as { date?: unknown }).date);
+    if (k) calcsByKey.set(k, c);
+  }
+
   const daysInMonth = new Date(year, month, 0).getDate();
 
   const entryHHMM = parseHHMM(scheduleEntry);
@@ -521,7 +545,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const calc = calcs.find((c) => String(c.date) === key);
+    const calc = calcsByKey.get(key);
 
     const previsto = previstoLabelForDay(key);
     const expected = Number(calc?.expectedMinutes ?? expectedMinutesForDay(key));
