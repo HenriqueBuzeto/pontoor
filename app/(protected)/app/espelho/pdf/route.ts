@@ -172,7 +172,7 @@ function buildHtml(params: {
   <meta charSet="utf-8" />
   <title>Cartão de Ponto</title>
   <style>
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 10mm; }
     * { box-sizing: border-box; }
     body {
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
@@ -183,7 +183,7 @@ function buildHtml(params: {
       display: flex;
       justify-content: space-between;
       gap: 16px;
-      padding: 0 0 10px 0;
+      padding: 0 0 8px 0;
       border-bottom: 2px solid #0f172a;
       align-items: flex-end;
     }
@@ -193,7 +193,7 @@ function buildHtml(params: {
       gap: 2px;
     }
     .title {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 800;
       letter-spacing: -0.02em;
       line-height: 1;
@@ -223,11 +223,11 @@ function buildHtml(params: {
       line-height: 1.45;
     }
     .meta strong { color: #0f172a; }
-    .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 10px; margin-top: 10px; }
+    .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 8px; margin-top: 8px; }
     .card {
       border: 1px solid #0f172a;
       border-radius: 10px;
-      padding: 10px;
+      padding: 8px;
     }
     .card-title {
       font-size: 10px;
@@ -250,7 +250,7 @@ function buildHtml(params: {
     .muted { color: #64748b; }
 
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #0f172a; padding: 5px 7px; font-size: 9.8px; }
+    th, td { border: 1px solid #0f172a; padding: 4px 6px; font-size: 9.4px; }
     th {
       font-weight: 800;
       text-transform: uppercase;
@@ -263,8 +263,15 @@ function buildHtml(params: {
     .align-right { text-align: right; }
     .balance-neg { color: #b91c1c; font-weight: 800; }
     .balance-pos { color: #0f172a; font-weight: 800; }
-    .sign { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .sign > div { border-top: 1px solid #0f172a; padding-top: 7px; font-size: 10px; text-align: center; color: #0f172a; }
+    .sign { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .sign > div {
+      border-top: 1px solid #0f172a;
+      padding-top: 6px;
+      min-height: 58px;
+      font-size: 10px;
+      text-align: center;
+      color: #0f172a;
+    }
   </style>
 </head>
 <body>
@@ -411,7 +418,9 @@ export async function GET(req: NextRequest) {
     { k: "DOM", w: 0 },
   ];
 
-  const workDays = Array.isArray(schedule?.workDays) ? schedule!.workDays : [1, 2, 3, 4, 5];
+  const workDays = (Array.isArray(schedule?.workDays) ? schedule!.workDays : [1, 2, 3, 4, 5, 6])
+    .map((v) => (typeof v === "number" ? v : Number(v)))
+    .filter((v) => Number.isFinite(v));
   const scheduleDaysTable = scheduleDays
     .map((d) => {
       const isWork = workDays.includes(d.w);
@@ -462,7 +471,8 @@ export async function GET(req: NextRequest) {
     // Regra fixa de sábado: 09:00–13:00 (4h), sem intervalo.
     if (weekday === 6) return 4 * 60;
 
-    if (!entryHHMM || !exitHHMM) return 0;
+    // Se a escala não estiver configurada, usa o padrão do sistema (8h em dias úteis)
+    if (!entryHHMM || !exitHHMM) return 8 * 60;
 
     let minutes = minutesBetween(entryHHMM, exitHHMM);
     if (breakStartHHMM && breakEndHHMM) {
@@ -598,7 +608,6 @@ export async function GET(req: NextRequest) {
   const rowsHtml = daySummaries.map((d) => d.rowHtml).join("");
 
   const totalWorked = daySummaries.reduce((acc, c) => acc + (c.workedMinutes ?? 0), 0);
-  const totalExpected = daySummaries.reduce((acc, c) => acc + (c.expectedMinutes ?? 0), 0);
   const totalBalance = daySummaries.reduce((acc, c) => acc + (c.balanceMinutes ?? 0), 0);
   const totalOvertime = daySummaries.reduce((acc, c) => acc + (c.overtimeMinutes ?? 0), 0);
 
@@ -608,7 +617,7 @@ export async function GET(req: NextRequest) {
   <td class="align-right"><strong>${escapeHtml(minutesToHHMM(totalWorked))}</strong></td>
   <td class="align-right"><strong>${escapeHtml(minutesToHHMM(totalOvertime))}</strong></td>
   <td class="align-right"><strong>${escapeHtml(minutesToHHMM(totalBalance))}</strong></td>
-  <td class="muted">Previsto: ${escapeHtml(minutesToHHMM(totalExpected))}</td>
+  <td class="muted"></td>
 </tr>`;
 
   const periodLabel = `De 01/${String(month).padStart(2, "0")}/${year} até ${String(daysInMonth).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
