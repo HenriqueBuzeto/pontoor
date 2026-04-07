@@ -81,6 +81,18 @@ export async function createEmployee(tenantId: string, data: NewEmployee) {
   return created;
 }
 
+export async function updateEmployeeName(tenantId: string, employeeId: string, name: string) {
+  const db = getDb();
+  const normalized = name.trim();
+  if (!normalized) throw new Error("Nome inválido");
+  const [updated] = await db
+    .update(employees)
+    .set({ name: normalized, updatedAt: new Date() })
+    .where(and(eq(employees.tenantId, tenantId), eq(employees.id, employeeId), isNull(employees.deletedAt)))
+    .returning();
+  return updated ?? null;
+}
+
 /** Gera próxima matrícula sequencial por tenant (001, 002, 003...). */
 export async function getNextEmployeeRegistration(tenantId: string): Promise<string> {
   const db = getDb();

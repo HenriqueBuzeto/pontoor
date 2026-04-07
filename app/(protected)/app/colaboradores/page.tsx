@@ -5,11 +5,13 @@ import { Plus } from "lucide-react";
 import { getCurrentTenantId } from "@/lib/auth/get-tenant";
 import { listEmployees } from "@/lib/repositories/employees";
 import { ColaboradoresFiltros } from "./colaboradores-filtros";
+import { getCurrentUser } from "@/lib/auth/server";
 
 type Props = { searchParams: Promise<{ page?: string; q?: string; status?: string }> };
 
 export default async function ColaboradoresPage({ searchParams }: Props) {
   const tenantId = await getCurrentTenantId();
+  const user = await getCurrentUser();
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const search = params.q ?? "";
@@ -29,6 +31,7 @@ export default async function ColaboradoresPage({ searchParams }: Props) {
   }
 
   const { list, total, totalPages } = await listEmployees(tenantId, { page, search, status });
+  const canEditAny = user?.role === "admin" || user?.role === "super_admin";
 
   return (
     <div className="space-y-6">
@@ -66,6 +69,7 @@ export default async function ColaboradoresPage({ searchParams }: Props) {
                     <th className="px-4 py-3 text-left font-medium text-ponto-muted">E-mail</th>
                     <th className="px-4 py-3 text-left font-medium text-ponto-muted">Status</th>
                     <th className="px-4 py-3 text-left font-medium text-ponto-muted">Admissão</th>
+                    <th className="px-4 py-3 text-right font-medium text-ponto-muted">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -87,6 +91,13 @@ export default async function ColaboradoresPage({ searchParams }: Props) {
                       </td>
                       <td className="px-4 py-3 text-ponto-muted">
                         {e.admissionDate ? new Date(e.admissionDate).toLocaleDateString("pt-BR") : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {(canEditAny || user?.employeeId === e.id) && (
+                          <Button variant="secondary" size="sm" asChild>
+                            <Link href={`/app/colaboradores/${e.id}`}>Editar</Link>
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import type { NewUser } from "@/lib/db/schema/users";
@@ -23,4 +23,26 @@ export async function listUsernamesByTenant(tenantId: string): Promise<Set<strin
     if (username) set.add(username);
   }
   return set;
+}
+
+export async function updateUserName(userId: string, name: string) {
+  const db = getDb();
+  const normalized = name.trim();
+  if (!normalized) throw new Error("Nome inválido");
+  const [updated] = await db
+    .update(users)
+    .set({ name: normalized, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning();
+  return updated ?? null;
+}
+
+export async function getUserByEmployeeId(tenantId: string, employeeId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .where(and(eq(users.tenantId, tenantId), eq(users.employeeId, employeeId)))
+    .limit(1);
+  return row ?? null;
 }
