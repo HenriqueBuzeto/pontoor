@@ -162,7 +162,7 @@ function buildHtml(params: {
   periodLabel: string;
   issuedAtLabel: string;
   scheduleLabel: string;
-  scheduleDaysTable: string;
+  scheduleSummaryHtml: string;
   rowsHtml: string;
   totalsHtml: string;
 }) {
@@ -223,7 +223,7 @@ function buildHtml(params: {
       line-height: 1.45;
     }
     .meta strong { color: #0f172a; }
-    .grid { display: grid; grid-template-columns: 1.28fr 0.72fr; gap: 6px; margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 6px; }
     .card {
       border: 1px solid #0f172a;
       border-radius: 12px;
@@ -263,7 +263,8 @@ function buildHtml(params: {
     .align-right { text-align: right; }
     .balance-neg { color: #b91c1c; font-weight: 800; }
     .balance-pos { color: #0f172a; font-weight: 800; }
-    .schedule-table th, .schedule-table td { padding: 2px 4px; font-size: 8.7px; }
+    .schedule-summary { font-size: 9.2px; display: grid; grid-template-columns: 84px 1fr; row-gap: 2px; column-gap: 10px; }
+    .schedule-summary .k { font-weight: 800; }
     .sign { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .sign > div {
       border-top: 1px solid #0f172a;
@@ -294,32 +295,21 @@ function buildHtml(params: {
 
   <div class="grid">
     <div class="card">
-      <div class="card-title">Colaborador</div>
-      <div class="kv">
-        <div class="k">Nome:</div><div class="v">${escapeHtml(params.employeeName)}</div>
-        <div class="k">Matrícula:</div><div class="v">${escapeHtml(params.employeeRegistration)}</div>
-        <div class="k">CPF:</div><div class="v">${escapeHtml(params.employeeCpf)}</div>
-        <div class="k">Departamento:</div><div class="v">${escapeHtml(params.departmentLabel)}</div>
+      <div class="card-title">Colaborador e escala</div>
+      <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px; align-items: start;">
+        <div class="kv">
+          <div class="k">Nome:</div><div class="v">${escapeHtml(params.employeeName)}</div>
+          <div class="k">Matrícula:</div><div class="v">${escapeHtml(params.employeeRegistration)}</div>
+          <div class="k">CPF:</div><div class="v">${escapeHtml(params.employeeCpf)}</div>
+          <div class="k">Departamento:</div><div class="v">${escapeHtml(params.departmentLabel)}</div>
+        </div>
+        <div>
+          <div style="font-size:10px; font-weight:800; margin-bottom:4px;">${escapeHtml(params.scheduleLabel)}</div>
+          <div class="schedule-summary">
+            ${params.scheduleSummaryHtml}
+          </div>
+        </div>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Horário de trabalho</div>
-      <div style="font-size:10px;margin-bottom:4px;"><strong>${escapeHtml(params.scheduleLabel)}</strong></div>
-      <table class="table-zebra schedule-table">
-        <thead>
-          <tr>
-            <th>Dia</th>
-            <th>Ent.</th>
-            <th>Saí. Alm.</th>
-            <th>Vol. Alm.</th>
-            <th>Saí.</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${params.scheduleDaysTable}
-        </tbody>
-      </table>
     </div>
   </div>
 
@@ -409,29 +399,32 @@ export async function GET(req: NextRequest) {
   const scheduleBreakStart = schedule?.breakStart ?? null;
   const scheduleBreakEnd = schedule?.breakEnd ?? null;
 
-  const scheduleDays = [
-    { k: "SEG", w: 1 },
-    { k: "TER", w: 2 },
-    { k: "QUA", w: 3 },
-    { k: "QUI", w: 4 },
-    { k: "SEX", w: 5 },
-    { k: "SÁB", w: 6 },
-    { k: "DOM", w: 0 },
-  ];
-
   const workDays = (Array.isArray(schedule?.workDays) ? schedule!.workDays : [1, 2, 3, 4, 5, 6])
     .map((v) => (typeof v === "number" ? v : Number(v)))
     .filter((v) => Number.isFinite(v));
-  const scheduleDaysTable = scheduleDays
-    .map((d) => {
-      const isWork = workDays.includes(d.w);
-      const ent = isWork ? (scheduleEntry ?? "-") : "-";
-      const sAlm = isWork ? (scheduleBreakStart ?? "-") : "-";
-      const vAlm = isWork ? (scheduleBreakEnd ?? "-") : "-";
-      const sai = isWork ? (scheduleExit ?? "-") : "-";
-      return `<tr><td>${d.k}</td><td>${escapeHtml(ent)}</td><td>${escapeHtml(sAlm)}</td><td>${escapeHtml(vAlm)}</td><td>${escapeHtml(sai)}</td></tr>`;
-    })
-    .join("");
+
+  const scheduleSummaryHtml = (() => {
+    const hasWeek = [1, 2, 3, 4, 5].some((d) => workDays.includes(d));
+    const hasSat = workDays.includes(6);
+    const hasSun = workDays.includes(0);
+
+    const weekLabel = hasWeek
+      ? (scheduleEntry && scheduleBreakStart && scheduleBreakEnd && scheduleExit
+          ? `${scheduleEntry} / ${scheduleBreakStart} / ${scheduleBreakEnd} / ${scheduleExit}`
+          : (scheduleEntry && scheduleExit ? `${scheduleEntry}–${scheduleExit}` : "08:00–17:00"))
+      : "-";
+
+    const satLabel = hasSat ? "09:00–13:00" : "-";
+    const sunLabel = hasSun
+      ? (scheduleEntry && scheduleExit ? `${scheduleEntry}–${scheduleExit}` : "08:00–17:00")
+      : "-";
+
+    const items: string[] = [];
+    items.push(`<div class="k">Seg–Sex:</div><div>${escapeHtml(weekLabel)}</div>`);
+    items.push(`<div class="k">Sábado:</div><div>${escapeHtml(satLabel)}</div>`);
+    items.push(`<div class="k">Domingo:</div><div>${escapeHtml(sunLabel)}</div>`);
+    return items.join("");
+  })();
 
   const byDateKey = new Map<string, { occurredAt: Date; type: string; source?: string | null }[]>();
   for (const e of entries) {
@@ -633,7 +626,7 @@ export async function GET(req: NextRequest) {
     periodLabel,
     issuedAtLabel,
     scheduleLabel: workScheduleLabel,
-    scheduleDaysTable,
+    scheduleSummaryHtml,
     rowsHtml,
     totalsHtml,
   });
