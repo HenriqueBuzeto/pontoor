@@ -199,7 +199,7 @@ function buildHtml(params: {
       line-height: 1;
     }
     .subtitle {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 500;
       color: #334155;
     }
@@ -211,7 +211,7 @@ function buildHtml(params: {
       border: 1px solid #e2e8f0;
       background: #f8fafc;
       border-radius: 999px;
-      padding: 6px 10px;
+      padding: 5px 9px;
       font-size: 10px;
       color: #334155;
     }
@@ -223,25 +223,25 @@ function buildHtml(params: {
       line-height: 1.45;
     }
     .meta strong { color: #0f172a; }
-    .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 8px; margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 6px; margin-top: 6px; }
     .card {
       border: 1px solid #0f172a;
       border-radius: 10px;
-      padding: 8px;
+      padding: 6px;
     }
     .card-title {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #0f172a;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .kv {
-      font-size: 10.5px;
+      font-size: 9.4px;
       display: grid;
-      grid-template-columns: 110px 1fr;
-      row-gap: 6px;
+      grid-template-columns: 92px 1fr;
+      row-gap: 4px;
       column-gap: 10px;
       align-items: baseline;
     }
@@ -263,6 +263,7 @@ function buildHtml(params: {
     .align-right { text-align: right; }
     .balance-neg { color: #b91c1c; font-weight: 800; }
     .balance-pos { color: #0f172a; font-weight: 800; }
+    .schedule-table th, .schedule-table td { padding: 3px 5px; font-size: 9px; }
     .sign { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .sign > div {
       border-top: 1px solid #0f172a;
@@ -305,7 +306,7 @@ function buildHtml(params: {
     <div class="card">
       <div class="card-title">Horário de trabalho</div>
       <div style="font-size:11px;margin-bottom:6px;"><strong>${escapeHtml(params.scheduleLabel)}</strong></div>
-      <table class="table-zebra">
+      <table class="table-zebra schedule-table">
         <thead>
           <tr>
             <th>Dia</th>
