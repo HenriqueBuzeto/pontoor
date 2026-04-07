@@ -172,7 +172,7 @@ function buildHtml(params: {
   <meta charSet="utf-8" />
   <title>Cartão de Ponto</title>
   <style>
-    @page { size: A4; margin: 10mm; }
+    @page { size: A4; margin: 8mm; }
     * { box-sizing: border-box; }
     body {
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
@@ -183,7 +183,7 @@ function buildHtml(params: {
       display: flex;
       justify-content: space-between;
       gap: 16px;
-      padding: 0 0 8px 0;
+      padding: 0 0 6px 0;
       border-bottom: 2px solid #0f172a;
       align-items: flex-end;
     }
@@ -204,7 +204,7 @@ function buildHtml(params: {
       color: #334155;
     }
     .pill {
-      margin-top: 8px;
+      margin-top: 6px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -223,11 +223,11 @@ function buildHtml(params: {
       line-height: 1.45;
     }
     .meta strong { color: #0f172a; }
-    .grid { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 6px; margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: 1.28fr 0.72fr; gap: 6px; margin-top: 6px; }
     .card {
       border: 1px solid #0f172a;
-      border-radius: 10px;
-      padding: 6px;
+      border-radius: 12px;
+      padding: 5px;
     }
     .card-title {
       font-size: 9px;
@@ -235,13 +235,13 @@ function buildHtml(params: {
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #0f172a;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .kv {
       font-size: 9.4px;
       display: grid;
       grid-template-columns: 92px 1fr;
-      row-gap: 4px;
+      row-gap: 2px;
       column-gap: 10px;
       align-items: baseline;
     }
@@ -250,7 +250,7 @@ function buildHtml(params: {
     .muted { color: #64748b; }
 
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #0f172a; padding: 4px 6px; font-size: 9.4px; }
+    th, td { border: 1px solid #0f172a; padding: 4px 6px; font-size: 9.2px; }
     th {
       font-weight: 800;
       text-transform: uppercase;
@@ -263,12 +263,12 @@ function buildHtml(params: {
     .align-right { text-align: right; }
     .balance-neg { color: #b91c1c; font-weight: 800; }
     .balance-pos { color: #0f172a; font-weight: 800; }
-    .schedule-table th, .schedule-table td { padding: 3px 5px; font-size: 9px; }
-    .sign { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .schedule-table th, .schedule-table td { padding: 2px 4px; font-size: 8.7px; }
+    .sign { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .sign > div {
       border-top: 1px solid #0f172a;
       padding-top: 6px;
-      min-height: 58px;
+      min-height: 44px;
       font-size: 10px;
       text-align: center;
       color: #0f172a;
@@ -305,7 +305,7 @@ function buildHtml(params: {
 
     <div class="card">
       <div class="card-title">Horário de trabalho</div>
-      <div style="font-size:11px;margin-bottom:6px;"><strong>${escapeHtml(params.scheduleLabel)}</strong></div>
+      <div style="font-size:10px;margin-bottom:4px;"><strong>${escapeHtml(params.scheduleLabel)}</strong></div>
       <table class="table-zebra schedule-table">
         <thead>
           <tr>
