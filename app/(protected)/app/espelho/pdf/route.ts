@@ -424,19 +424,35 @@ export async function GET(req: NextRequest) {
   const breakStartHHMM = parseHHMM(scheduleBreakStart);
   const breakEndHHMM = parseHHMM(scheduleBreakEnd);
 
-  const expectedMinutesForDay = (key: string) => {
-    if (!entryHHMM || !exitHHMM) return 0;
+  const weekdayForKey = (key: string) => {
     const [y, m, d] = key.split("-").map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0));
-    const weekday = dt.getUTCDay();
+    return dt.getUTCDay();
+  };
+
+  const expectedMinutesForDay = (key: string) => {
+    const weekday = weekdayForKey(key);
     const isWorkDay = workDays.includes(weekday);
     if (!isWorkDay) return 0;
+
+    // Regra fixa de sábado: 09:00–13:00 (4h), sem intervalo.
+    if (weekday === 6) return 4 * 60;
+
+    if (!entryHHMM || !exitHHMM) return 0;
 
     let minutes = minutesBetween(entryHHMM, exitHHMM);
     if (breakStartHHMM && breakEndHHMM) {
       minutes -= Math.max(0, minutesBetween(breakStartHHMM, breakEndHHMM));
     }
     return Math.max(0, minutes);
+  };
+
+  const previstoLabelForDay = (key: string) => {
+    const weekday = weekdayForKey(key);
+    const isWorkDay = workDays.includes(weekday);
+    if (!isWorkDay) return "-";
+    if (weekday === 6) return "09:00-13:00";
+    return scheduleEntry && scheduleExit ? `${scheduleEntry}-${scheduleExit}` : "-";
   };
 
   const isDayFinishedInTZ = (key: string) => {
@@ -507,7 +523,7 @@ export async function GET(req: NextRequest) {
 
     const calc = calcs.find((c) => String(c.date) === key);
 
-    const previsto = scheduleEntry && scheduleExit ? `${scheduleEntry}-${scheduleExit}` : "-";
+    const previsto = previstoLabelForDay(key);
     const expected = Number(calc?.expectedMinutes ?? expectedMinutesForDay(key));
 
     const hasAnyEntry = dayEntries.length > 0;
