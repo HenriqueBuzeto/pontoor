@@ -124,6 +124,17 @@ function minutesToHHMM(mins: number | null | undefined) {
   return `${sign}${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
+function parseHHMM(input: string | null | undefined) {
+  const s = String(input ?? "").trim();
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(s);
+  if (!m) return null;
+  return { hour: Number(m[1]), minute: Number(m[2]) };
+}
+
+function minutesBetween(a: { hour: number; minute: number }, b: { hour: number; minute: number }) {
+  return (b.hour * 60 + b.minute) - (a.hour * 60 + a.minute);
+}
+
 function buildHtml(params: {
   tenantName: string;
   employeeName: string;
@@ -408,7 +419,33 @@ export async function GET(req: NextRequest) {
 
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  const rowsHtml = Array.from({ length: daysInMonth }, (_, idx) => {
+  const entryHHMM = parseHHMM(scheduleEntry);
+  const exitHHMM = parseHHMM(scheduleExit);
+  const breakStartHHMM = parseHHMM(scheduleBreakStart);
+  const breakEndHHMM = parseHHMM(scheduleBreakEnd);
+
+  const expectedMinutesForDay = (key: string) => {
+    if (!entryHHMM || !exitHHMM) return 0;
+    const [y, m, d] = key.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0));
+    const weekday = dt.getUTCDay();
+    const isWorkDay = workDays.includes(weekday);
+    if (!isWorkDay) return 0;
+
+    let minutes = minutesBetween(entryHHMM, exitHHMM);
+    if (breakStartHHMM && breakEndHHMM) {
+      minutes -= Math.max(0, minutesBetween(breakStartHHMM, breakEndHHMM));
+    }
+    return Math.max(0, minutes);
+  };
+
+  const isDayFinishedInTZ = (key: string) => {
+    const [y, m, d] = key.split("-").map(Number);
+    const endOfDay = zonedWallTimeToUtcDate({ year: y, month: m, day: d, hour: 23, minute: 59, second: 59, ms: 999, timeZone: TZ });
+    return new Date().getTime() > endOfDay.getTime();
+  };
+
+  const daySummaries = Array.from({ length: daysInMonth }, (_, idx) => {
     const day = idx + 1;
     const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
@@ -471,15 +508,28 @@ export async function GET(req: NextRequest) {
     const calc = calcs.find((c) => String(c.date) === key);
 
     const previsto = scheduleEntry && scheduleExit ? `${scheduleEntry}-${scheduleExit}` : "-";
-    const worked = minutesToHHMM(calc?.workedMinutes ?? 0);
-    const overtime = minutesToHHMM(calc?.overtimeMinutes ?? 0);
-    const rawBalance = Number(calc?.balanceMinutes ?? 0);
+    const expected = Number(calc?.expectedMinutes ?? expectedMinutesForDay(key));
+
+    const hasAnyEntry = dayEntries.length > 0;
+    const mainComplete = !!(ent1 && saiAlmoco && voltaAlmoco && sai1);
+    const treatAsAbsent = expected > 0 && isDayFinishedInTZ(key) && (!hasAnyEntry || !mainComplete);
+
+    const workedMinutes = treatAsAbsent ? 0 : Number(calc?.workedMinutes ?? 0);
+    const overtimeMinutes = treatAsAbsent ? 0 : Number(calc?.overtimeMinutes ?? 0);
+    const rawBalance = treatAsAbsent ? -expected : Number(calc?.balanceMinutes ?? 0);
+
+    const worked = minutesToHHMM(workedMinutes);
+    const overtime = minutesToHHMM(overtimeMinutes);
     const balance = minutesToHHMM(rawBalance);
-    const obs = dayEntries.some((e) => e.source === "manual_adjustment") ? "Ajuste" : "";
+    const obs = dayEntries.some((e) => e.source === "manual_adjustment")
+      ? "Ajuste"
+      : treatAsAbsent
+        ? (hasAnyEntry ? "Incompleto" : "Falta")
+        : "";
 
     const balanceClass = rawBalance < 0 ? "balance-neg" : "balance-pos";
 
-    return `
+    const rowHtml = `
 <tr>
   <td>${escapeHtml(formatDateLabel(key))}</td>
   <td>${escapeHtml(previsto)}</td>
@@ -494,12 +544,23 @@ export async function GET(req: NextRequest) {
   <td class="align-right ${balanceClass}">${escapeHtml(balance)}</td>
   <td>${escapeHtml(obs)}</td>
 </tr>`;
-  }).join("");
 
-  const totalWorked = calcs.reduce((acc, c) => acc + (c.workedMinutes ?? 0), 0);
-  const totalExpected = calcs.reduce((acc, c) => acc + (c.expectedMinutes ?? 0), 0);
-  const totalBalance = calcs.reduce((acc, c) => acc + (c.balanceMinutes ?? 0), 0);
-  const totalOvertime = calcs.reduce((acc, c) => acc + (c.overtimeMinutes ?? 0), 0);
+    return {
+      key,
+      expectedMinutes: expected,
+      workedMinutes,
+      overtimeMinutes,
+      balanceMinutes: rawBalance,
+      rowHtml,
+    };
+  });
+
+  const rowsHtml = daySummaries.map((d) => d.rowHtml).join("");
+
+  const totalWorked = daySummaries.reduce((acc, c) => acc + (c.workedMinutes ?? 0), 0);
+  const totalExpected = daySummaries.reduce((acc, c) => acc + (c.expectedMinutes ?? 0), 0);
+  const totalBalance = daySummaries.reduce((acc, c) => acc + (c.balanceMinutes ?? 0), 0);
+  const totalOvertime = daySummaries.reduce((acc, c) => acc + (c.overtimeMinutes ?? 0), 0);
 
   const totalsHtml = `
 <tr>
