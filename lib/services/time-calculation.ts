@@ -200,7 +200,8 @@ export async function recalculateDayInTransaction(
   const isHoliday =
     (await isManualHoliday(tenantId, dateKey)) || (await isNationalHoliday(dateKey));
 
-  const expectedMinutes = isHoliday ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? 8 * 60) : 0;
+  const defaultExpectedMinutes = weekday === 6 ? 4 * 60 : 8 * 60;
+  const expectedMinutes = isHoliday ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? defaultExpectedMinutes) : 0;
 
   let calc: DailyCalculationResult = {
     ...baseCalc,

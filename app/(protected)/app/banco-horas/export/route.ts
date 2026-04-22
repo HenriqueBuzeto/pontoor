@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
         ? 0
         : rawBalance;
     } else {
-      const expectedMinutes = isHoliday ? 0 : 8 * 60;
+      const expectedMinutes = isHoliday ? 0 : currentDate.getDay() === 6 ? 4 * 60 : 8 * 60;
       const isPastDay =
         currentDate <
         new Date(today.getFullYear(), today.getMonth(), today.getDate());
