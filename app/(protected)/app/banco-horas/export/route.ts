@@ -39,11 +39,16 @@ export async function GET(req: NextRequest) {
   const user = userId ? await getSessionUser(userId) : null;
   if (!user?.employeeId) return new Response("Usuário sem colaborador.", { status: 400 });
 
+  const isAdmin = user.role === "admin" || user.role === "super_admin";
+
   const search = req.nextUrl.searchParams;
   const month = Number(search.get("month") ?? "0");
   const year = Number(search.get("year") ?? "0");
   const formatParam = (search.get("format") ?? "csv").toLowerCase();
+  const requestedEmployeeId = (search.get("employeeId") ?? "").trim();
   if (!month || !year) return new Response("Parâmetros inválidos.", { status: 400 });
+
+  const employeeId = isAdmin ? (requestedEmployeeId || user.employeeId) : user.employeeId;
 
   const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
   const end = new Date(year, month, 0, 23, 59, 59, 999);
@@ -54,13 +59,13 @@ export async function GET(req: NextRequest) {
   ).padStart(2, "0")}`;
 
   const [calcRows, approvedAdjustments, rawEntries, manualHolidays, nationalHolidaySet] = await Promise.all([
-    listDailyCalculationsByEmployee(tenantId, user.employeeId, year, month),
+    listDailyCalculationsByEmployee(tenantId, employeeId, year, month),
     listAdjustments(tenantId, {
       status: "approved",
-      employeeId: user.employeeId,
+      employeeId,
       limit: 500,
     }),
-    listTimeEntriesByEmployee(tenantId, user.employeeId, start, end),
+    listTimeEntriesByEmployee(tenantId, employeeId, start, end),
     listHolidaysByRange(tenantId, startKey, endKey),
     getNationalHolidaySet(year),
   ]);

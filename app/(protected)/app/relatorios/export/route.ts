@@ -169,7 +169,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (tipo === "atrasos" || tipo === "horas_extras") {
-    const calcRows = await listDailyCalculationsByTenant(tenantId, ano, mes, { limit: 5000 });
+    const calcRows = await listDailyCalculationsByTenant(tenantId, ano, mes, {
+      limit: 5000,
+      employeeId: employeeId || undefined,
+    });
     const filtered =
       tipo === "atrasos"
         ? calcRows.filter((r) => (r.lateMinutes ?? 0) > 0 || (r.earlyLeaveMinutes ?? 0) > 0)

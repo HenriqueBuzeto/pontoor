@@ -5,6 +5,7 @@ import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calcula
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { listAdjustments } from "@/lib/repositories/adjustments";
 import { getEmployeeById } from "@/lib/repositories/employees";
+import { listEmployees } from "@/lib/repositories/employees";
 import { listHolidaysByRange } from "@/lib/repositories/holidays";
 import { getNationalHolidaySet } from "@/lib/services/holidays";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +37,7 @@ function dateFromKey(key: string) {
 type SearchParams = {
   month?: string;
   year?: string;
+  employeeId?: string;
 };
 
 export default async function BancoHorasPage({
@@ -45,16 +47,20 @@ export default async function BancoHorasPage({
 }) {
   const tenantId = await getCurrentTenantId();
   const user = await getCurrentUser();
-  const employeeId = user?.employeeId ?? null;
+  const sessionEmployeeId = user?.employeeId ?? null;
   const isAdmin =
     user?.role === "admin" || user?.role === "super_admin";
+
+  const params = await searchParams;
+  const selectedEmployeeId = isAdmin ? (params.employeeId ?? "") : "";
+  const employeeId = isAdmin
+    ? (selectedEmployeeId || sessionEmployeeId)
+    : sessionEmployeeId;
 
   const employee = tenantId && employeeId ? await getEmployeeById(tenantId, employeeId) : null;
   const admissionDateRaw = employee?.admissionDate ?? null;
   const admissionDateKey = admissionDateRaw ? String(admissionDateRaw).slice(0, 10) : null;
   const admissionDate = admissionDateKey ? new Date(`${admissionDateKey}T00:00:00`) : null;
-
-  const params = await searchParams;
   const now = new Date();
   const selectedMonth = Number(params.month ?? now.getMonth() + 1); // 1-12
   const selectedYear = Number(params.year ?? now.getFullYear());
@@ -71,6 +77,10 @@ export default async function BancoHorasPage({
       </div>
     );
   }
+
+  const employees = isAdmin
+    ? (await listEmployees(tenantId, { page: 1, status: "active" })).list
+    : [];
 
   // Se tiver employeeId, usa os cálculos diários persistidos em time_calculations
   let dailyRows:
@@ -315,8 +325,26 @@ export default async function BancoHorasPage({
       {employeeId && (
         <form
           method="get"
-          className="flex flex-wrap items-end gap-3 rounded-lg border border-ponto-border bg-ponto-surface px-4 py-3 text-sm"
+          action="/app/banco-horas"
+          className="flex flex-wrap items-end gap-3 rounded-xl border border-ponto-border bg-ponto-white p-4 shadow-sm"
         >
+          {isAdmin && (
+            <div className="min-w-[220px]">
+              <label className="mb-1 block text-xs font-medium text-ponto-muted">Colaborador</label>
+              <select
+                name="employeeId"
+                defaultValue={selectedEmployeeId || ""}
+                className="h-9 w-full rounded-md border border-ponto-border bg-ponto-white px-2 text-xs"
+              >
+                <option value="">Meu usuário</option>
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name} ({e.registration})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-xs font-medium text-ponto-muted">Mês</label>
             <select
@@ -370,7 +398,9 @@ export default async function BancoHorasPage({
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={`/app/banco-horas/export?month=${selectedMonth}&year=${selectedYear}&format=html`}
+                    href={`/app/banco-horas/export?month=${selectedMonth}&year=${selectedYear}${
+                      isAdmin && selectedEmployeeId ? `&employeeId=${encodeURIComponent(selectedEmployeeId)}` : ""
+                    }&format=html`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center rounded-full border border-ponto-border bg-ponto-surface px-3 py-1.5 text-xs font-medium text-ponto-black hover:bg-ponto-border/20"
@@ -378,7 +408,9 @@ export default async function BancoHorasPage({
                     Imprimir / PDF
                   </a>
                   <a
-                    href={`/app/banco-horas/export?month=${selectedMonth}&year=${selectedYear}`}
+                    href={`/app/banco-horas/export?month=${selectedMonth}&year=${selectedYear}${
+                      isAdmin && selectedEmployeeId ? `&employeeId=${encodeURIComponent(selectedEmployeeId)}` : ""
+                    }`}
                     className="inline-flex items-center rounded-full bg-ponto-orange px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-ponto-orange/40 hover:bg-ponto-orange/90 hover:shadow-md hover:shadow-ponto-orange/50 transition-all"
                   >
                     Exportar Excel
