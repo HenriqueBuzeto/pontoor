@@ -11,6 +11,8 @@ import { getEmployeeById } from "@/lib/repositories/employees";
 import { getWorkScheduleById } from "@/lib/repositories/work-schedules";
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calculations";
+import { listHolidaysByRange } from "@/lib/repositories/holidays";
+import { getNationalHolidaySet } from "@/lib/services/holidays";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -387,11 +389,11 @@ export async function GET(req: NextRequest) {
 
   const { start, end } = getMonthRangeInTZ(year, month);
 
-  const [entries, calcs, schedule] = await Promise.all([
+  const [schedule, entries, calcs] = await Promise.all([
+    employee.workScheduleId ? getWorkScheduleById(tenantId, employee.workScheduleId) : Promise.resolve(null),
     listTimeEntriesByEmployee(tenantId, employee.id, start, end),
     listDailyCalculationsByEmployee(tenantId, employee.id, year, month),
-    employee.workScheduleId ? getWorkScheduleById(tenantId, employee.workScheduleId) : Promise.resolve(null),
-  ] as const);
+  ]);
 
   const workScheduleLabel = schedule?.name ?? "Escala";
   const scheduleEntry = schedule?.entryTime ?? null;
@@ -446,6 +448,22 @@ export async function GET(req: NextRequest) {
 
   const daysInMonth = new Date(year, month, 0).getDate();
 
+  const startKey = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endKey = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const [manualHolidays, nationalHolidaySet] = await Promise.all([
+    listHolidaysByRange(tenantId, startKey, endKey),
+    getNationalHolidaySet(year),
+  ]);
+
+  const holidaySet = new Set<string>();
+  for (const h of manualHolidays ?? []) {
+    holidaySet.add(String(h.date).slice(0, 10));
+  }
+  for (const key of nationalHolidaySet) {
+    if (key >= startKey && key <= endKey) holidaySet.add(key);
+  }
+
   const entryHHMM = parseHHMM(scheduleEntry);
   const exitHHMM = parseHHMM(scheduleExit);
   const breakStartHHMM = parseHHMM(scheduleBreakStart);
@@ -458,6 +476,7 @@ export async function GET(req: NextRequest) {
   };
 
   const expectedMinutesForDay = (key: string) => {
+    if (holidaySet.has(key)) return 0;
     const weekday = weekdayForKey(key);
     const isWorkDay = workDays.includes(weekday);
     if (!isWorkDay) return 0;

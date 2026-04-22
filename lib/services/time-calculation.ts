@@ -1,6 +1,8 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import { getDb, type Db } from "@/lib/db";
 import { employees, timeEntries, timeCalculations, workSchedules } from "@/lib/db/schema";
+import { isManualHoliday } from "@/lib/repositories/holidays";
+import { isNationalHoliday } from "@/lib/services/holidays";
 
 type Tx = Pick<Db, "select" | "insert" | "update">;
 
@@ -194,7 +196,11 @@ export async function recalculateDayInTransaction(
   const weekday = currentDay.getDay();
   const scheduleWorkDays = Array.isArray(scheduleRow?.workDays) ? scheduleRow?.workDays : null;
   const isWorkDay = scheduleWorkDays ? scheduleWorkDays.includes(weekday) : weekday !== 0;
-  const expectedMinutes = isWorkDay ? (scheduleRow?.dailyHours ?? 8 * 60) : 0;
+
+  const isHoliday =
+    (await isManualHoliday(tenantId, dateKey)) || (await isNationalHoliday(dateKey));
+
+  const expectedMinutes = isHoliday ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? 8 * 60) : 0;
 
   let calc: DailyCalculationResult = {
     ...baseCalc,

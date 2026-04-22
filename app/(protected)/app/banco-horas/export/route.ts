@@ -5,6 +5,8 @@ import { getSessionUserIdFromRequest } from "@/lib/auth/session-cookie";
 import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calculations";
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { listAdjustments } from "@/lib/repositories/adjustments";
+import { listHolidaysByRange } from "@/lib/repositories/holidays";
+import { getNationalHolidaySet } from "@/lib/services/holidays";
 
 function formatMinutes(m: number) {
   const sign = m < 0 ? "-" : "";
@@ -46,7 +48,12 @@ export async function GET(req: NextRequest) {
   const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
   const end = new Date(year, month, 0, 23, 59, 59, 999);
 
-  const [calcRows, approvedAdjustments, rawEntries] = await Promise.all([
+  const startKey = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endKey = `${year}-${String(month).padStart(2, "0")}-${String(
+    new Date(year, month, 0).getDate()
+  ).padStart(2, "0")}`;
+
+  const [calcRows, approvedAdjustments, rawEntries, manualHolidays, nationalHolidaySet] = await Promise.all([
     listDailyCalculationsByEmployee(tenantId, user.employeeId, year, month),
     listAdjustments(tenantId, {
       status: "approved",
@@ -54,7 +61,17 @@ export async function GET(req: NextRequest) {
       limit: 500,
     }),
     listTimeEntriesByEmployee(tenantId, user.employeeId, start, end),
+    listHolidaysByRange(tenantId, startKey, endKey),
+    getNationalHolidaySet(year),
   ]);
+
+  const holidaySet = new Set<string>();
+  for (const h of manualHolidays ?? []) {
+    holidaySet.add(String(h.date).slice(0, 10));
+  }
+  for (const key of nationalHolidaySet) {
+    if (key >= startKey && key <= endKey) holidaySet.add(key);
+  }
 
   const justifiedDays = new Set<string>();
   for (const a of approvedAdjustments) {
@@ -112,6 +129,7 @@ export async function GET(req: NextRequest) {
     const calc = byDayCalc.get(key);
     const bucket = byDayEntries.get(key);
     const isJustifiedDay = justifiedDays.has(key);
+    const isHoliday = holidaySet.has(key);
 
     const isFutureDay = isCurrentMonth && day > today.getDate();
 
@@ -129,16 +147,18 @@ export async function GET(req: NextRequest) {
 
       dayBalanceMinutes = isJustifiedDay
         ? 0
+        : isHoliday && workedMinutes === 0
+        ? 0
         : isToday && rawBalance < 0
         ? 0
         : rawBalance;
     } else {
-      const expectedMinutes = 8 * 60;
+      const expectedMinutes = isHoliday ? 0 : 8 * 60;
       const isPastDay =
         currentDate <
         new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const shouldCountAsAbsence =
-        isPastDay && !isFutureDay && !isJustifiedDay;
+        isPastDay && !isFutureDay && !isJustifiedDay && expectedMinutes > 0;
       workedMinutes = 0;
       dayBalanceMinutes = shouldCountAsAbsence ? -expectedMinutes : 0;
     }

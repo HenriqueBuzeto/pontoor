@@ -13,6 +13,7 @@ import {
   Building2,
   FileBarChart,
   ClipboardList,
+  Calendar,
   ArrowRight,
 } from "lucide-react";
 
@@ -146,6 +147,13 @@ export default async function AdminDashboardPage() {
             <Link href="/app/colaboradores" className="flex w-full items-center gap-3 text-left">
               <UsersRound className="h-5 w-5 shrink-0 text-blue-600" />
               <span className="flex-1">Colaboradores</span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-ponto-muted" />
+            </Link>
+          </Button>
+          <Button asChild variant="secondary" className="h-auto flex-col items-start gap-2 py-4">
+            <Link href="/app/admin/feriados" className="flex w-full items-center gap-3 text-left">
+              <Calendar className="h-5 w-5 shrink-0 text-ponto-orange" />
+              <span className="flex-1">Feriados</span>
               <ArrowRight className="h-4 w-4 shrink-0 text-ponto-muted" />
             </Link>
           </Button>

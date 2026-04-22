@@ -5,6 +5,8 @@ import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calcula
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { listAdjustments } from "@/lib/repositories/adjustments";
 import { getEmployeeById } from "@/lib/repositories/employees";
+import { listHolidaysByRange } from "@/lib/repositories/holidays";
+import { getNationalHolidaySet } from "@/lib/services/holidays";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BancoHorasTabelaAjustes } from "./banco-horas-tabela-ajustes";
 
@@ -91,7 +93,12 @@ export default async function BancoHorasPage({
     const start = new Date(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0);
     const end = new Date(selectedYear, selectedMonth, 0, 23, 59, 59, 999);
 
-    const [calcRows, approvedAdjustments] = await Promise.all([
+    const startKey = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+    const endKey = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-${String(
+      new Date(selectedYear, selectedMonth, 0).getDate()
+    ).padStart(2, "0")}`;
+
+    const [calcRows, approvedAdjustments, manualHolidays, nationalHolidaySet] = await Promise.all([
       listDailyCalculationsByEmployee(
         tenantId,
         employeeId,
@@ -103,7 +110,19 @@ export default async function BancoHorasPage({
         employeeId,
         limit: 500,
       }),
+      listHolidaysByRange(tenantId, startKey, endKey),
+      getNationalHolidaySet(selectedYear),
     ]);
+
+    const holidaySet = new Set<string>();
+    for (const h of manualHolidays ?? []) {
+      const key = String(h.date).slice(0, 10);
+      holidaySet.add(key);
+    }
+    for (const key of nationalHolidaySet) {
+      // filtra apenas o mês atual
+      if (key >= startKey && key <= endKey) holidaySet.add(key);
+    }
 
     const justifiedDays = new Set<string>();
     for (const a of approvedAdjustments) {
@@ -180,6 +199,7 @@ export default async function BancoHorasPage({
       const calc = byDayCalc.get(key);
       const bucket = byDayEntries.get(key);
       const isJustifiedDay = justifiedDays.has(key);
+      const isHoliday = holidaySet.has(key);
 
       const isFutureDay = isCurrentMonth && day > today.getDate();
 
@@ -200,11 +220,13 @@ export default async function BancoHorasPage({
 
         dayBalanceMinutes = isJustifiedDay
           ? 0
+          : isHoliday && workedMinutes === 0
+          ? 0
           : isToday && rawBalance < 0
           ? 0
           : rawBalance;
       } else {
-        const expectedMinutes = 8 * 60;
+        const expectedMinutes = isHoliday ? 0 : 8 * 60;
         const isPastDay =
           currentDate <
           new Date(
@@ -213,7 +235,7 @@ export default async function BancoHorasPage({
             today.getDate()
           );
         const shouldCountAsAbsence =
-          isPastDay && !isFutureDay && !isJustifiedDay;
+          isPastDay && !isFutureDay && !isJustifiedDay && expectedMinutes > 0;
         workedMinutes = 0;
         dayBalanceMinutes = shouldCountAsAbsence ? -expectedMinutes : 0;
       }
