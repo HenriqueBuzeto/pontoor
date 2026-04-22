@@ -1,19 +1,23 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getCurrentTenantId } from "@/lib/auth/get-tenant";
+import { getCurrentUser } from "@/lib/auth/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RelatoriosFiltros } from "./relatorios-filtros";
 import { listTimeEntriesByTenant } from "@/lib/repositories/time-entry";
 import { listDailyCalculationsByTenant } from "@/lib/repositories/time-calculations";
+import { listEmployees } from "@/lib/repositories/employees";
 
-type Props = { searchParams: Promise<{ tipo?: string; mes?: string; ano?: string }> };
+type Props = { searchParams: Promise<{ tipo?: string; mes?: string; ano?: string; employeeId?: string }> };
 
 export default async function RelatoriosPage({ searchParams }: Props) {
   const tenantId = await getCurrentTenantId();
+  const user = await getCurrentUser();
   const params = await searchParams;
   const tipo = params.tipo ?? "";
   const mesParam = params.mes ?? "";
   const anoParam = params.ano ?? "";
+  const employeeIdParam = params.employeeId ?? "";
 
   if (!tenantId) {
     return (
@@ -28,7 +32,14 @@ export default async function RelatoriosPage({ searchParams }: Props) {
     );
   }
 
-  const hasFilters = !!(tipo || mesParam || anoParam);
+  const hasFilters = !!(tipo || mesParam || anoParam || employeeIdParam);
+
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const employeeId = isAdmin ? employeeIdParam : "";
+
+  const employees = isAdmin
+    ? (await listEmployees(tenantId, { page: 1, status: "active" })).list
+    : [];
 
   let content: React.ReactNode = (
     <p className="text-ponto-muted">
@@ -50,7 +61,10 @@ export default async function RelatoriosPage({ searchParams }: Props) {
     periodoLabel = `${format(start, "MMM yyyy", { locale: ptBR })}`;
 
     if (tipo === "marcacoes") {
-      const rows = await listTimeEntriesByTenant(tenantId, start, end, { limit: 2000 });
+      const rows = await listTimeEntriesByTenant(tenantId, start, end, {
+        limit: 2000,
+        employeeId: employeeId || undefined,
+      });
       const hasData = rows.length > 0;
 
       if (!hasData) {
@@ -142,7 +156,10 @@ export default async function RelatoriosPage({ searchParams }: Props) {
         );
       }
     } else if (tipo === "espelho") {
-      const rows = await listTimeEntriesByTenant(tenantId, start, end, { limit: 5000 });
+      const rows = await listTimeEntriesByTenant(tenantId, start, end, {
+        limit: 5000,
+        employeeId: employeeId || undefined,
+      });
       const hasData = rows.length > 0;
 
       if (!hasData) {
@@ -309,7 +326,10 @@ export default async function RelatoriosPage({ searchParams }: Props) {
         );
       }
     } else if (tipo === "atrasos") {
-      const calcRows = await listDailyCalculationsByTenant(tenantId, ano, mes, { limit: 5000 });
+      const calcRows = await listDailyCalculationsByTenant(tenantId, ano, mes, {
+        limit: 5000,
+        employeeId: employeeId || undefined,
+      });
       const rows = calcRows.filter(
         (r) => (r.lateMinutes ?? 0) > 0 || (r.earlyLeaveMinutes ?? 0) > 0
       );
@@ -418,7 +438,10 @@ export default async function RelatoriosPage({ searchParams }: Props) {
         );
       }
     } else if (tipo === "horas_extras") {
-      const calcRows = await listDailyCalculationsByTenant(tenantId, ano, mes, { limit: 5000 });
+      const calcRows = await listDailyCalculationsByTenant(tenantId, ano, mes, {
+        limit: 5000,
+        employeeId: employeeId || undefined,
+      });
       const rows = calcRows.filter((r) => (r.overtimeMinutes ?? 0) > 0);
       const hasData = rows.length > 0;
 
@@ -535,7 +558,14 @@ export default async function RelatoriosPage({ searchParams }: Props) {
         <p className="text-ponto-muted">Relatórios gerenciais e exportação PDF/CSV/XLSX</p>
       </div>
 
-      <RelatoriosFiltros tipo={tipo} mes={mesParam} ano={anoParam} />
+      <RelatoriosFiltros
+        tipo={tipo}
+        mes={mesParam}
+        ano={anoParam}
+        employeeId={employeeIdParam}
+        employees={employees.map((e) => ({ id: e.id, name: e.name, registration: e.registration }))}
+        showEmployeeSelect={!!isAdmin}
+      />
 
       <Card className="border-ponto-border shadow-lux">
         <CardHeader className="flex items-center justify-between border-b border-ponto-border/50">
@@ -552,7 +582,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
               <a
                 href={`/app/relatorios/export?tipo=${encodeURIComponent(tipo)}&mes=${encodeURIComponent(
                   mesParam || ""
-                )}&ano=${encodeURIComponent(anoParam || "")}&formato=html`}
+                )}&ano=${encodeURIComponent(anoParam || "")}${employeeId ? `&employeeId=${encodeURIComponent(employeeId)}` : ""}&formato=html`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center rounded-md border border-ponto-border bg-ponto-surface px-3 py-1.5 text-xs font-medium text-ponto-black hover:bg-ponto-border/20"
@@ -562,7 +592,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
               <a
                 href={`/app/relatorios/export?tipo=${encodeURIComponent(tipo)}&mes=${encodeURIComponent(
                   mesParam || ""
-                )}&ano=${encodeURIComponent(anoParam || "")}&formato=csv`}
+                )}&ano=${encodeURIComponent(anoParam || "")}${employeeId ? `&employeeId=${encodeURIComponent(employeeId)}` : ""}&formato=csv`}
                 className="inline-flex items-center rounded-md border border-ponto-border bg-ponto-surface px-3 py-1.5 text-xs font-medium text-ponto-black hover:bg-ponto-border/20"
               >
                 Exportar Excel/CSV

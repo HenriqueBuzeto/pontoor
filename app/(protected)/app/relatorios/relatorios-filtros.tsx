@@ -12,10 +12,37 @@ export function RelatoriosFiltros({
   tipo,
   mes,
   ano,
-}: { tipo: string; mes: string; ano: string }) {
+  employeeId,
+  employees,
+  showEmployeeSelect,
+}: {
+  tipo: string;
+  mes: string;
+  ano: string;
+  employeeId: string;
+  employees: { id: string; name: string; registration: string }[];
+  showEmployeeSelect: boolean;
+}) {
   const currentYear = new Date().getFullYear();
   return (
     <form method="get" action="/app/relatorios" className="flex flex-wrap items-end gap-3">
+      {showEmployeeSelect && (
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ponto-muted">Colaborador</label>
+          <select
+            name="employeeId"
+            defaultValue={employeeId}
+            className="h-10 min-w-[220px] rounded-md border border-ponto-border bg-ponto-white px-3 text-sm"
+          >
+            <option value="">Todos</option>
+            {employees.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name} ({e.registration})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label className="mb-1 block text-sm font-medium text-ponto-muted">Tipo</label>
         <select

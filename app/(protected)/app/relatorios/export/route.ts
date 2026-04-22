@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
   const mes = Number(search.get("mes") ?? "0");
   const ano = Number(search.get("ano") ?? "0");
   const formato = (search.get("formato") ?? "csv").toLowerCase();
+  const employeeId = (search.get("employeeId") ?? "").trim();
 
   if (!tipo || !mes || !ano) {
     return new Response("Parâmetros inválidos.", { status: 400 });
@@ -37,7 +38,10 @@ export async function GET(req: NextRequest) {
   const fileBaseName = `relatorio-${tipo}-${String(mes).padStart(2, "0")}-${ano}`;
 
   if (tipo === "marcacoes") {
-    const rows = await listTimeEntriesByTenant(tenantId, start, end, { limit: 5000 });
+    const rows = await listTimeEntriesByTenant(tenantId, start, end, {
+      limit: 5000,
+      employeeId: employeeId || undefined,
+    });
 
     if (formato === "html") {
       const headerHtml = `
