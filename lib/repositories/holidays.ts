@@ -4,21 +4,32 @@ import { holidays } from "@/lib/db/schema";
 
 export async function listHolidaysByRange(tenantId: string, startDate: string, endDate: string) {
   const db = getDb();
-  return db
-    .select({ date: holidays.date, name: holidays.name })
-    .from(holidays)
-    .where(and(eq(holidays.tenantId, tenantId), gte(holidays.date, startDate), lte(holidays.date, endDate)))
-    .orderBy(holidays.date);
+  try {
+    return await db
+      .select({ date: holidays.date, name: holidays.name })
+      .from(holidays)
+      .where(and(eq(holidays.tenantId, tenantId), gte(holidays.date, startDate), lte(holidays.date, endDate)))
+      .orderBy(holidays.date);
+  } catch (e) {
+    // migration ainda não aplicada (ex.: relation "holidays" does not exist)
+    console.error("[holidays] listHolidaysByRange failed", e);
+    return [];
+  }
 }
 
 export async function isManualHoliday(tenantId: string, dateKey: string): Promise<boolean> {
   const db = getDb();
-  const [row] = await db
-    .select({ date: holidays.date })
-    .from(holidays)
-    .where(and(eq(holidays.tenantId, tenantId), eq(holidays.date, dateKey)))
-    .limit(1);
-  return !!row;
+  try {
+    const [row] = await db
+      .select({ date: holidays.date })
+      .from(holidays)
+      .where(and(eq(holidays.tenantId, tenantId), eq(holidays.date, dateKey)))
+      .limit(1);
+    return !!row;
+  } catch (e) {
+    console.error("[holidays] isManualHoliday failed", e);
+    return false;
+  }
 }
 
 export async function createHoliday(tenantId: string, dateKey: string, name: string) {
