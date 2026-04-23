@@ -203,11 +203,14 @@ export async function recalculateDayInTransaction(
   const defaultExpectedMinutes = weekday === 6 ? 4 * 60 : 8 * 60;
   const expectedMinutes = isHoliday ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? defaultExpectedMinutes) : 0;
 
+  const holidayMultiplier = isHoliday && baseCalc.workedMinutes > 0 ? 2 : 1;
+  const workedForBalance = baseCalc.workedMinutes * holidayMultiplier;
+
   let calc: DailyCalculationResult = {
     ...baseCalc,
     expectedMinutes,
-    balanceMinutes: baseCalc.workedMinutes - expectedMinutes,
-    overtimeMinutes: Math.max(0, baseCalc.workedMinutes - expectedMinutes),
+    balanceMinutes: workedForBalance - expectedMinutes,
+    overtimeMinutes: Math.max(0, workedForBalance - expectedMinutes),
     absent: expectedMinutes > 0 && baseCalc.workedMinutes === 0,
   };
 
