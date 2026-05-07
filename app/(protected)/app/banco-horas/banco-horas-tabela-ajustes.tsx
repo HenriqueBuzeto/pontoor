@@ -21,9 +21,10 @@ type DayRow = {
 
 type Props = {
   rows: DayRow[];
+  employeeId?: string;
 };
 
-export function BancoHorasTabelaAjustes({ rows }: Props) {
+export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -125,6 +126,9 @@ export function BancoHorasTabelaAjustes({ rows }: Props) {
                   {isExpanded && (
                     <div className="mt-2 space-y-2 text-xs text-ponto-muted">
                       <form action={formAction} className="space-y-2">
+                        {!!employeeId && (
+                          <input type="hidden" name="employeeId" value={employeeId} />
+                        )}
                         <div>
                           <label className="mb-1 block text-[11px] font-medium text-ponto-muted">
                             Tipo de ajuste

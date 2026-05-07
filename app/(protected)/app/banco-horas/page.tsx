@@ -450,6 +450,7 @@ export default async function BancoHorasPage({
             </CardHeader>
             <CardContent className="p-0">
               <BancoHorasTabelaAjustes
+                employeeId={isAdmin ? (selectedEmployeeId || undefined) : undefined}
                 rows={dailyRows.map((r) => ({
                   date: dateKeySP(r.date),
                   displayDate: r.date.toLocaleDateString("pt-BR", { timeZone: TZ }),

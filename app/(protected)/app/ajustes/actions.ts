@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentTenantId } from "@/lib/auth/get-tenant";
 import { getCurrentUser } from "@/lib/auth/server";
 import { createAdjustment } from "@/lib/repositories/adjustments";
+import { getEmployeeById } from "@/lib/repositories/employees";
 import type { AdjustmentType } from "@/lib/db/schema/adjustments";
 
 export type CreateAdjustmentState = { error?: string; success?: boolean };
@@ -18,6 +19,13 @@ export async function createAdjustmentAction(
   const user = await getCurrentUser();
   if (!user?.id || !user.employeeId) {
     return { error: "Usuário sem vínculo de colaborador. Verifique o cadastro." };
+  }
+
+  const isAdmin = user.role === "admin" || user.role === "super_admin";
+  const requestedEmployeeId = (formData.get("employeeId") as string | null)?.trim() ?? "";
+  const targetEmployeeId = requestedEmployeeId && isAdmin ? requestedEmployeeId : user.employeeId;
+  if (requestedEmployeeId && !isAdmin) {
+    return { error: "Você não tem permissão para solicitar ajuste para outro colaborador." };
   }
 
   const type = (formData.get("type") as string)?.trim();
@@ -86,8 +94,15 @@ export async function createAdjustmentAction(
   }
 
   try {
+    if (targetEmployeeId !== user.employeeId) {
+      const emp = await getEmployeeById(tenantId, targetEmployeeId);
+      if (!emp?.id) {
+        return { error: "Colaborador inválido para este tenant." };
+      }
+    }
+
     const created = await createAdjustment(tenantId, {
-      employeeId: user.employeeId,
+      employeeId: targetEmployeeId,
       type: type as AdjustmentType,
       reason,
       date,
