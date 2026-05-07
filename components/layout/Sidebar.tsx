@@ -10,6 +10,7 @@ import {
   UsersRound,
   Timer,
   ClipboardCheck,
+  CalendarDays,
   Wallet,
   FileBarChart,
   BarChart3,
@@ -44,6 +45,7 @@ const baseNavGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/app/ponto", label: "Registro de Ponto", icon: Timer },
       { href: "/app/ajustes", label: "Ajustes e Justificativas", icon: ClipboardCheck },
+      { href: "/app/ferias", label: "Férias", icon: CalendarDays },
       { href: "/app/banco-horas", label: "Banco de Horas", icon: Wallet },
       { href: "/app/espelho", label: "Espelho de Ponto", icon: FileBarChart },
     ],

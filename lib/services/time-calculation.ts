@@ -3,6 +3,7 @@ import { getDb, type Db } from "@/lib/db";
 import { employees, timeEntries, timeCalculations, workSchedules } from "@/lib/db/schema";
 import { isManualHoliday } from "@/lib/repositories/holidays";
 import { isNationalHoliday } from "@/lib/services/holidays";
+import { isOnVacation } from "@/lib/repositories/vacations";
 
 type Tx = Pick<Db, "select" | "insert" | "update">;
 
@@ -200,8 +201,10 @@ export async function recalculateDayInTransaction(
   const isHoliday =
     (await isManualHoliday(tenantId, dateKey)) || (await isNationalHoliday(dateKey));
 
+  const onVacation = await isOnVacation(tenantId, employeeId, dateKey);
+
   const defaultExpectedMinutes = weekday === 6 ? 4 * 60 : 8 * 60;
-  const expectedMinutes = isHoliday ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? defaultExpectedMinutes) : 0;
+  const expectedMinutes = isHoliday || onVacation ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? defaultExpectedMinutes) : 0;
 
   const holidayMultiplier = isHoliday && baseCalc.workedMinutes > 0 ? 2 : 1;
   const workedForBalance = baseCalc.workedMinutes * holidayMultiplier;

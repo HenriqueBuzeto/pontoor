@@ -136,7 +136,7 @@ export default async function BancoHorasPage({
 
     const justifiedDays = new Set<string>();
     for (const a of approvedAdjustments) {
-      if (a.type === "justified_absence") {
+      if (a.type === "justified_absence" || a.type === "vacation") {
         justifiedDays.add(a.date.toISOString().slice(0, 10));
       }
     }

@@ -13,5 +13,6 @@ export * from "./adjustments";
 export * from "./hour-bank";
 export * from "./payroll";
 export * from "./holidays";
+export * from "./vacations";
 export * from "./audit";
 export * from "./notifications";

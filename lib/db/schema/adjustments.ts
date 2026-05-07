@@ -17,6 +17,7 @@ export const adjustmentTypes = [
   "early_leave",    // saída antecipada
   "external_work",  // trabalho externo
   "justified_absence", // falta justificada / atestado (não contabiliza horas)
+  "vacation",       // férias (não contabiliza horas)
   "other",
 ] as const;
 export type AdjustmentType = (typeof adjustmentTypes)[number];

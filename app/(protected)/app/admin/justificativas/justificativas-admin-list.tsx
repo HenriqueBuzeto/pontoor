@@ -22,6 +22,7 @@ const TYPE_LABEL: Record<string, string> = {
   late: "Atraso",
   absence: "Falta (não justificada)",
   justified_absence: "Falta justificada / atestado (não contar horas)",
+  vacation: "Férias (não contabilizar horas)",
   forgot_mark: "Esquecimento de marcação",
   early_leave: "Saída antecipada",
   external_work: "Trabalho externo",

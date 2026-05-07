@@ -142,6 +142,7 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
                             <option value="justified_absence">
                               Falta justificada / atestado (não contar horas)
                             </option>
+                            <option value="vacation">Férias (não contabilizar horas)</option>
                           </select>
                         </div>
                         <input type="hidden" name="date" value={r.date} />

@@ -11,6 +11,7 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "late", label: "Atraso" },
   { value: "absence", label: "Falta (não justificada)" },
   { value: "justified_absence", label: "Falta justificada / atestado (não contar horas)" },
+  { value: "vacation", label: "Férias (não contabilizar horas)" },
   { value: "forgot_mark", label: "Esquecimento de marcação" },
   { value: "early_leave", label: "Saída antecipada" },
   { value: "external_work", label: "Trabalho externo" },
