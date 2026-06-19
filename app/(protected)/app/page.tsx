@@ -8,6 +8,8 @@ import {
   sumBalanceMinutesByEmployeeInRange,
 } from "@/lib/repositories/time-calculations";
 import { getEmployeeById } from "@/lib/repositories/employees";
+import { listHolidaysByRange } from "@/lib/repositories/holidays";
+import { getNationalHolidaySet } from "@/lib/services/holidays";
 import { AppWelcomeHero } from "@/components/app/AppWelcomeHero";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
@@ -71,16 +73,30 @@ export default async function AppHomePage() {
     // Tendência e saldo do mês atual (mesma regra da tela Banco de Horas)
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
-    const [calcRows, approvedAbsences] = await Promise.all([
+    const startKey = `${year}-${String(month).padStart(2, "0")}-01`;
+    const endKey = `${year}-${String(month).padStart(2, "0")}-${String(
+      new Date(year, month, 0).getDate()
+    ).padStart(2, "0")}`;
+
+    const [calcRows, approvedAbsences, manualHolidays, nationalHolidaySet] = await Promise.all([
       listDailyCalculationsByEmployee(tenantId, employeeId, year, month),
       listAdjustments(tenantId, {
         status: "approved",
         employeeId,
-        limit: 200,
-        fromDate: start,
-        toDate: tomorrow,
+        limit: 500,
       }),
+      listHolidaysByRange(tenantId, startKey, endKey),
+      getNationalHolidaySet(year),
     ]);
+
+    const holidaySet = new Set<string>();
+    for (const h of manualHolidays ?? []) {
+      const key = String(h.date).slice(0, 10);
+      holidaySet.add(key);
+    }
+    for (const key of nationalHolidaySet) {
+      if (key >= startKey && key <= endKey) holidaySet.add(key);
+    }
 
     const justifiedDays = new Set(
       approvedAbsences
@@ -97,19 +113,65 @@ export default async function AppHomePage() {
     }
 
     if (admissionDateKey) {
-      const total = await sumBalanceMinutesByEmployeeInRange(
-        tenantId,
-        employeeId,
-        admissionDateKey,
-        tomorrowKey
-      );
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const admissionDate = new Date(`${admissionDateKey}T00:00:00`);
+      let monthBalanceMinutes = 0;
 
-      const todayKey = now.toISOString().slice(0, 10);
-      const todayCalc = await getDailyCalculationByEmployeeAndDate(tenantId, employeeId, todayKey);
-      const todayAdjusted = todayCalc && (todayCalc.balanceMinutes ?? 0) < 0 ? 0 : (todayCalc?.balanceMinutes ?? 0);
-      const totalWithoutToday = total - (todayCalc?.balanceMinutes ?? 0);
+      for (let day = 1; day <= daysInMonth; day++) {
+        const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const currentDate = new Date(`${key}T12:00:00Z`);
+        const isSunday = currentDate.getDay() === 0;
+        if (isSunday) continue;
 
-      bankMinutes = totalWithoutToday + todayAdjusted;
+        const isBeforeAdmission =
+          currentDate <
+          new Date(
+            admissionDate.getFullYear(),
+            admissionDate.getMonth(),
+            admissionDate.getDate()
+          );
+
+        const calc = byDayCalc.get(key);
+        const isJustifiedDay = justifiedDays.has(key);
+        const isHoliday = holidaySet.has(key);
+        const isFutureDay = day > now.getDate();
+
+        let dayBalanceMinutes = 0;
+
+        if (isBeforeAdmission) {
+          dayBalanceMinutes = 0;
+        } else if (calc) {
+          const rawBalance = calc.balanceMinutes ?? 0;
+          const isToday =
+            currentDate.getFullYear() === now.getFullYear() &&
+            currentDate.getMonth() === now.getMonth() &&
+            currentDate.getDate() === now.getDate();
+
+          dayBalanceMinutes = isJustifiedDay
+            ? 0
+            : isHoliday && (calc.workedMinutes ?? 0) === 0
+            ? 0
+            : isToday && rawBalance < 0
+            ? 0
+            : rawBalance;
+        } else {
+          const expectedMinutes = isHoliday ? 0 : currentDate.getDay() === 6 ? 4 * 60 : 8 * 60;
+          const isPastDay =
+            currentDate <
+            new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate()
+            );
+          const shouldCountAsAbsence =
+            isPastDay && !isFutureDay && !isJustifiedDay && expectedMinutes > 0;
+          dayBalanceMinutes = shouldCountAsAbsence ? -expectedMinutes : 0;
+        }
+
+        monthBalanceMinutes += dayBalanceMinutes;
+      }
+
+      bankMinutes = monthBalanceMinutes;
     } else {
       bankMinutes = 0;
     }
