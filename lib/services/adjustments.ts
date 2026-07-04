@@ -78,7 +78,7 @@ export type ApproveAdjustmentOptions = {
 function normalizeTime(value?: string | null): string | undefined {
   const v = (value ?? "").trim();
   if (!v) return undefined;
-  if (v === "00:00") return undefined;
+  if (v === "00:00" || v === "—") return undefined;
   return v;
 }
 
@@ -229,6 +229,88 @@ async function overwriteTimeEntriesForDayInTx(
   );
 }
 
+function dateToTimeString(date: Date, timeZone: string = TZ): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+  return `${hour}:${minute}`;
+}
+
+function mapEntriesToSchedule(
+  entries: { occurredAt: Date; type: string }[],
+  timeZone: string = TZ
+): ParsedSchedule {
+  const sorted = [...entries].sort(
+    (a, b) => a.occurredAt.getTime() - b.occurredAt.getTime()
+  );
+
+  let firstIn: Date | null = null;
+  let lastOut: Date | null = null;
+  let lunchStart: Date | null = null;
+  let lunchEnd: Date | null = null;
+  let extraStart: Date | null = null;
+  let extraEnd: Date | null = null;
+
+  for (const item of sorted) {
+    const { occurredAt: time, type } = item;
+
+    if (type === "clock_in") {
+      if (!firstIn) {
+        firstIn = time;
+      } else if (lastOut && !extraStart) {
+        extraStart = time;
+      }
+    }
+
+    if (type === "clock_out") {
+      if (!lastOut) {
+        lastOut = time;
+      } else if (extraStart && !extraEnd) {
+        extraEnd = time;
+      } else {
+        lastOut = time;
+      }
+    }
+
+    if (type === "break_start" && !lunchStart) {
+      lunchStart = time;
+    }
+    if (type === "break_end" && lunchStart && !lunchEnd) {
+      lunchEnd = time;
+    }
+  }
+
+  const toStr = (d: Date | null) => (d ? dateToTimeString(d, timeZone) : undefined);
+
+  return {
+    expediente: { start: toStr(firstIn), end: toStr(lastOut) },
+    almoco: { start: toStr(lunchStart), end: toStr(lunchEnd) },
+    extra: { start: toStr(extraStart), end: toStr(extraEnd) },
+  };
+}
+
+function mergeSchedules(existing: ParsedSchedule, incoming: ParsedSchedule): ParsedSchedule {
+  return {
+    expediente: {
+      start: incoming.expediente.start !== undefined ? incoming.expediente.start : existing.expediente.start,
+      end: incoming.expediente.end !== undefined ? incoming.expediente.end : existing.expediente.end,
+    },
+    almoco: {
+      start: incoming.almoco.start !== undefined ? incoming.almoco.start : existing.almoco.start,
+      end: incoming.almoco.end !== undefined ? incoming.almoco.end : existing.almoco.end,
+    },
+    extra: {
+      start: incoming.extra.start !== undefined ? incoming.extra.start : existing.extra.start,
+      end: incoming.extra.end !== undefined ? incoming.extra.end : existing.extra.end,
+    },
+  };
+}
+
 export async function approveAdjustmentWithRecalculation(
   tenantId: string,
   adjustmentId: string,
@@ -286,13 +368,6 @@ export async function approveAdjustmentWithRecalculation(
 
     if (schedule) {
       const date = new Date(adj.date);
-      const items = buildEntriesFromSchedule(date, schedule);
-
-      console.log("[approveAdjustment] built schedule", {
-        date,
-        schedule,
-        items: items.map((it) => ({ type: it.type, occurredAt: it.occurredAt.toISOString() })),
-      });
 
       // Marcações existentes ANTES do overwrite
       const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
@@ -320,6 +395,16 @@ export async function approveAdjustmentWithRecalculation(
           type: e.type,
           occurredAt: e.occurredAt.toISOString(),
         })),
+      });
+
+      const existingSchedule = mapEntriesToSchedule(beforeEntries, TZ);
+      const mergedSchedule = mergeSchedules(existingSchedule, schedule);
+      const items = buildEntriesFromSchedule(date, mergedSchedule);
+
+      console.log("[approveAdjustment] merged schedule", {
+        date,
+        mergedSchedule,
+        items: items.map((it) => ({ type: it.type, occurredAt: it.occurredAt.toISOString() })),
       });
 
       await overwriteTimeEntriesForDayInTx(tx, tenantId, adj.employeeId, date, items);
@@ -359,4 +444,5 @@ export async function approveAdjustmentWithRecalculation(
     return { ok: true as const };
   });
 }
+
 

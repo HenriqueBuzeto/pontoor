@@ -13,6 +13,7 @@ type Entry = {
 
 type Props = {
   entries: Entry[];
+  employeeId?: string;
 };
 
 const TZ = "America/Sao_Paulo";
@@ -39,7 +40,7 @@ const TYPE_LABEL: Record<string, string> = {
   pause_end: "Pausa fim",
 };
 
-export function EspelhoTabelaAjustes({ entries }: Props) {
+export function EspelhoTabelaAjustes({ entries, employeeId }: Props) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -142,6 +143,9 @@ export function EspelhoTabelaAjustes({ entries }: Props) {
                   {isExpanded && (
                     <div className="mt-3 space-y-2 text-xs text-ponto-muted">
                       <form action={formAction} className="space-y-2">
+                        {!!employeeId && (
+                          <input type="hidden" name="employeeId" value={employeeId} />
+                        )}
                         <input type="hidden" name="type" value="other" />
                         <input type="hidden" name="date" value={day.key} />
                         <label className="mb-1 block text-[11px] font-medium text-ponto-muted">

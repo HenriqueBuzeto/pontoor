@@ -195,6 +195,7 @@ export default async function EspelhoPage({ searchParams }: Props) {
           ) : (
             <EspelhoTabelaAjustes
               entries={consolidatedEntries}
+              employeeId={effectiveEmployeeId || undefined}
             />
           )}
           {effectiveEmployeeId && consolidatedEntries.length > 0 && (
