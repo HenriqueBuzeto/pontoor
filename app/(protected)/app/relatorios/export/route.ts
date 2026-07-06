@@ -312,7 +312,10 @@ export async function GET(req: NextRequest) {
 
   // Espelho: exporta resumo diário por colaborador em CSV/HTML simples
   if (tipo === "espelho") {
-    const rows = await listTimeEntriesByTenant(tenantId, start, end, { limit: 5000 });
+    const rows = await listTimeEntriesByTenant(tenantId, start, end, {
+      limit: 5000,
+      employeeId: employeeId || undefined,
+    });
 
     if (formato === "html") {
       const headerHtml = `
