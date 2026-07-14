@@ -78,7 +78,7 @@ export type ApproveAdjustmentOptions = {
 function normalizeTime(value?: string | null): string | undefined {
   const v = (value ?? "").trim();
   if (!v) return undefined;
-  if (v === "00:00" || v === "—") return undefined;
+  if (v === "—") return undefined;
   return v;
 }
 
@@ -118,7 +118,7 @@ export function extractScheduleFromReason(reason: string): ParsedSchedule | null
     const rest = line.slice(prefix.length).trim(); // ex.: "08:00 até 18:00"
     const [start, , end] = rest.split(" ");
     const isEmptyTime = (t?: string) =>
-      !t || t === "—" || t === "00:00";
+      !t || t === "—";
     return {
       start: !isEmptyTime(start) ? start : undefined,
       end: !isEmptyTime(end) ? end : undefined,
@@ -139,7 +139,7 @@ export function buildEntriesFromSchedule(
   const ymd = getYmdInTimeZone(date, TZ);
 
   const toDate = (time?: string) => {
-    if (!time) return null;
+    if (!time || time === "00:00" || time === "—") return null;
     const [h, m] = time.split(":").map((v) => parseInt(v, 10));
     if (Number.isNaN(h) || Number.isNaN(m)) return null;
     return zonedWallTimeToUtcDate({

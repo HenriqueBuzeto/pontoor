@@ -51,8 +51,6 @@ export async function createAdjustmentAction(
 
   const normalizeTime = (value: string) => {
     const v = value.trim();
-    // Trata 00:00 como “sem registro” para não gerar marcação na meia-noite
-    if (v === "00:00") return "";
     return v;
   };
 
