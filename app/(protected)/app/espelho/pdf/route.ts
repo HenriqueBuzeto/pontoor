@@ -198,13 +198,13 @@ function buildHtml(params: {
       gap: 1px;
     }
     .title {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 800;
       letter-spacing: -0.02em;
       line-height: 1.1;
     }
     .subtitle {
-      font-size: 10px;
+      font-size: 10.5px;
       font-weight: 500;
       color: #334155;
     }
@@ -232,21 +232,21 @@ function buildHtml(params: {
     .card {
       border: 1px solid #0f172a;
       border-radius: 8px;
-      padding: 4px 6px;
+      padding: 6px 10px;
     }
     .card-title {
-      font-size: 8px;
+      font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #0f172a;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
     }
     .kv {
-      font-size: 8.5px;
+      font-size: 9px;
       display: grid;
-      grid-template-columns: 78px 1fr;
-      row-gap: 1px;
+      grid-template-columns: 82px 1fr;
+      row-gap: 2px;
       column-gap: 8px;
       align-items: baseline;
     }
@@ -255,50 +255,52 @@ function buildHtml(params: {
     .muted { color: #64748b; }
 
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #0f172a; padding: 2px 4px; font-size: 8px; line-height: 1.15; }
+    th, td { border: 1px solid #0f172a; padding: 2.8px 4px; font-size: 8.2px; line-height: 1.15; text-align: center; }
     th {
       font-weight: 800;
       text-transform: uppercase;
-      font-size: 7.5px;
-      letter-spacing: 0.05em;
+      font-size: 7.6px;
+      letter-spacing: 0.04em;
       background: #f8fafc;
     }
     .table-zebra tbody tr:nth-child(odd) td { background: #ffffff; }
     .table-zebra tbody tr:nth-child(even) td { background: #f8fafc; }
     .align-right { text-align: right; }
+    .align-left { text-align: left; }
     .balance-neg { color: #b91c1c; font-weight: 800; }
     .balance-pos { color: #0f172a; font-weight: 800; }
-    .schedule-summary { font-size: 8.5px; display: grid; grid-template-columns: 70px 1fr; row-gap: 1px; column-gap: 8px; }
+    .schedule-summary { font-size: 9px; display: grid; grid-template-columns: 72px 1fr; row-gap: 1.5px; column-gap: 8px; }
     .schedule-summary .k { font-weight: 800; }
     .sign {
-      margin-top: 14px;
+      margin-top: 26px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 36px;
       page-break-inside: avoid;
       break-inside: avoid;
     }
     .sign-box {
-      border-top: 1.2px solid #0f172a;
+      border-top: 1.5px solid #0f172a;
       padding-top: 6px;
       text-align: center;
       color: #0f172a;
+      min-height: 48px;
     }
     .sign-role {
-      font-size: 8.5px;
+      font-size: 9.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
     }
     .sign-name {
-      font-size: 8px;
+      font-size: 9px;
       color: #334155;
-      margin-top: 1px;
+      margin-top: 2px;
     }
     .sign-date {
-      font-size: 7.5px;
+      font-size: 8.5px;
       color: #64748b;
-      margin-top: 2px;
+      margin-top: 4px;
     }
   </style>
 </head>
@@ -306,6 +308,7 @@ function buildHtml(params: {
   <div class="header">
     <div class="brand">
       <div class="title">Cartão de Ponto</div>
+      <div class="subtitle">Documento oficial para conferência mensal</div>
       <div class="pill">
         <span><strong>${escapeHtml(params.tenantName)}</strong></span>
         <span class="muted">•</span>
@@ -338,18 +341,19 @@ function buildHtml(params: {
     <table class="table-zebra">
       <thead>
         <tr>
-          <th style="width: 120px;">Dia</th>
-          <th>Previsto</th>
-          <th style="width: 55px;">Ent 1</th>
-          <th style="width: 55px;">Saí Alm.</th>
-          <th style="width: 55px;">Vol. Alm.</th>
-          <th style="width: 55px;">Saí 1</th>
-          <th style="width: 55px;">Ent 3</th>
-          <th style="width: 55px;">Saí 3</th>
-          <th style="width: 62px;" class="align-right">Trab.</th>
-          <th style="width: 62px;" class="align-right">Extra</th>
-          <th style="width: 62px;" class="align-right">Saldo</th>
-          <th>Obs</th>
+          <th style="width: 105px;" class="align-left">Dia</th>
+          <th style="width: 48px;">Ent 1</th>
+          <th style="width: 48px;">Saí Alm.</th>
+          <th style="width: 48px;">Vol. Alm.</th>
+          <th style="width: 48px;">Saí 1</th>
+          <th style="width: 58px;">Saída Meio</th>
+          <th style="width: 58px;">Volta Meio</th>
+          <th style="width: 48px;">Ent 3</th>
+          <th style="width: 48px;">Saí 3</th>
+          <th style="width: 54px;" class="align-right">Trab.</th>
+          <th style="width: 54px;" class="align-right">Extra</th>
+          <th style="width: 54px;" class="align-right">Saldo</th>
+          <th style="width: 60px;">Obs</th>
         </tr>
       </thead>
       <tbody>
@@ -439,12 +443,14 @@ export async function GET(req: NextRequest) {
     const weekLabel = hasWeek
       ? (scheduleEntry && scheduleBreakStart && scheduleBreakEnd && scheduleExit
           ? `${scheduleEntry} / ${scheduleBreakStart} / ${scheduleBreakEnd} / ${scheduleExit}`
-          : (scheduleEntry && scheduleExit ? `${scheduleEntry}–${scheduleExit}` : "08:00–17:00"))
+          : (scheduleEntry && scheduleExit ? `${scheduleEntry}–${scheduleExit}` : "08:00–18:00"))
       : "-";
 
-    const satLabel = hasSat ? "09:00–13:00" : "-";
+    const satLabel = hasSat
+      ? (scheduleEntry && scheduleExit ? `${scheduleEntry}–${scheduleExit}` : "09:00–13:00")
+      : "-";
     const sunLabel = hasSun
-      ? (scheduleEntry && scheduleExit ? `${scheduleEntry}–${scheduleExit}` : "08:00–17:00")
+      ? (scheduleEntry && scheduleExit ? `${scheduleEntry}–${scheduleExit}` : "08:00–18:00")
       : "-";
 
     const items: string[] = [];
@@ -507,10 +513,13 @@ export async function GET(req: NextRequest) {
     const isWorkDay = workDays.includes(weekday);
     if (!isWorkDay) return 0;
 
-    // Regra fixa de sábado: 09:00–13:00 (4h), sem intervalo.
-    if (weekday === 6) return 4 * 60;
+    if (weekday === 6) {
+      if (entryHHMM && exitHHMM) {
+        return Math.max(0, minutesBetween(entryHHMM, exitHHMM));
+      }
+      return 4 * 60;
+    }
 
-    // Se a escala não estiver configurada, usa o padrão do sistema (8h em dias úteis)
     if (!entryHHMM || !exitHHMM) return 8 * 60;
 
     let minutes = minutesBetween(entryHHMM, exitHHMM);
@@ -520,33 +529,29 @@ export async function GET(req: NextRequest) {
     return Math.max(0, minutes);
   };
 
-  const previstoLabelForDay = (key: string) => {
-    const weekday = weekdayForKey(key);
-    const isWorkDay = workDays.includes(weekday);
-    if (!isWorkDay) return "-";
-    if (weekday === 6) return "09:00-13:00";
-    return scheduleEntry && scheduleExit ? `${scheduleEntry}-${scheduleExit}` : "-";
-  };
-
-  const isDayFinishedInTZ = (key: string) => {
-    const [y, m, d] = key.split("-").map(Number);
-    const endOfDay = zonedWallTimeToUtcDate({ year: y, month: m, day: d, hour: 23, minute: 59, second: 59, ms: 999, timeZone: TZ });
-    return new Date().getTime() > endOfDay.getTime();
-  };
+  const today = new Date();
+  const todayYmd = getYmdInTimeZone(today, TZ);
+  const isCurrentMonth = year === todayYmd.year && month === todayYmd.month;
 
   const daySummaries = Array.from({ length: daysInMonth }, (_, idx) => {
     const day = idx + 1;
     const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
+    const isFutureDay =
+      year > todayYmd.year ||
+      (year === todayYmd.year && month > todayYmd.month) ||
+      (isCurrentMonth && day > todayYmd.day);
+
+    const isToday = isCurrentMonth && day === todayYmd.day;
+
     const dayEntries = (byDateKey.get(key) ?? []).sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
 
-    // Padrão esperado:
-    // Ent1 (clock_in) -> Saí almoço (break_start) -> Volta almoço (break_end) -> Saí1 (clock_out)
-    // Hora extra opcional: Ent3 (clock_in) -> Saí3 (clock_out)
     let ent1: Date | null = null;
     let saiAlmoco: Date | null = null;
     let voltaAlmoco: Date | null = null;
     let sai1: Date | null = null;
+    let saidaMeio: Date | null = null;
+    let voltaMeio: Date | null = null;
     let ent3: Date | null = null;
     let sai3: Date | null = null;
 
@@ -580,9 +585,22 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      if (it.type === "pause_start") {
+        if (!saidaMeio) {
+          saidaMeio = it.occurredAt;
+          continue;
+        }
+      }
+
+      if (it.type === "pause_end") {
+        if (!voltaMeio) {
+          voltaMeio = it.occurredAt;
+          continue;
+        }
+      }
+
       if (it.type === "clock_out") {
         if (!sai1) {
-          // primeira saída do dia vira saída principal
           sai1 = it.occurredAt;
           sawMainOut = true;
           continue;
@@ -595,23 +613,19 @@ export async function GET(req: NextRequest) {
     }
 
     const calc = calcsByKey.get(key);
-
-    const previsto = previstoLabelForDay(key);
     const expected = Number(calc?.expectedMinutes ?? expectedMinutesForDay(key));
     const weekday = weekdayForKey(key);
     const isSaturday = weekday === 6;
 
     const hasAnyEntry = dayEntries.length > 0;
-    // No sábado (ou em dias sem intervalo obrigatório), basta ter entrada e saída (ent1 e sai1).
-    // Nos dias de semana normais com intervalo previsto, espera-se entrada, intervalo e saída.
     const hasRequiredBreak = !!(breakStartHHMM && breakEndHHMM);
     const mainComplete = isSaturday || !hasRequiredBreak
       ? !!(ent1 && sai1)
       : !!(ent1 && saiAlmoco && voltaAlmoco && sai1);
 
-    const treatAsAbsent = expected > 0 && isDayFinishedInTZ(key) && (!hasAnyEntry || !mainComplete);
+    // Se for dia futuro ou dia de hoje em andamento, não contabiliza como falta nem negativa
+    const treatAsAbsent = !isFutureDay && !isToday && expected > 0 && (!hasAnyEntry || !mainComplete);
 
-    // Se o dia não for tratado como falta, calcula ou usa o cálculo registrado
     let calculatedWorked = Number(calc?.workedMinutes ?? 0);
     if (!calc && ent1 && sai1) {
       if (saiAlmoco && voltaAlmoco) {
@@ -636,31 +650,54 @@ export async function GET(req: NextRequest) {
     }
 
     const hasPause = dayEntries.some((e) => e.type === "pause_start");
-    const workedMinutes = treatAsAbsent ? 0 : calculatedWorked;
-    const rawBalance = treatAsAbsent ? -expected : (calc ? Number(calc.balanceMinutes ?? 0) : (workedMinutes - expected));
-    const overtimeMinutes = treatAsAbsent ? 0 : (calc ? Number(calc.overtimeMinutes ?? 0) : Math.max(0, rawBalance));
+
+    let workedMinutes = isFutureDay ? 0 : (treatAsAbsent ? 0 : calculatedWorked);
+    let rawBalance = 0;
+    let overtimeMinutes = 0;
+
+    if (isFutureDay) {
+      rawBalance = 0;
+      overtimeMinutes = 0;
+      workedMinutes = 0;
+    } else if (treatAsAbsent) {
+      rawBalance = -expected;
+      overtimeMinutes = 0;
+    } else if (calc) {
+      const calcBalance = Number(calc.balanceMinutes ?? 0);
+      rawBalance = isToday && calcBalance < 0 ? 0 : calcBalance;
+      overtimeMinutes = Number(calc.overtimeMinutes ?? 0);
+    } else {
+      const diff = workedMinutes - expected;
+      rawBalance = isToday && diff < 0 ? 0 : diff;
+      overtimeMinutes = Math.max(0, rawBalance);
+    }
 
     const worked = minutesToHHMM(workedMinutes);
     const overtime = minutesToHHMM(overtimeMinutes);
     const balance = minutesToHHMM(rawBalance);
-    const obs = dayEntries.some((e) => e.source === "manual_adjustment")
-      ? "Ajuste"
-      : treatAsAbsent
-        ? (hasAnyEntry ? "Incompleto" : "Falta")
-        : hasPause
-          ? "Saída ext."
-          : "";
+
+    let obs = "";
+    if (dayEntries.some((e) => e.source === "manual_adjustment")) {
+      obs = "Ajuste";
+    } else if (isFutureDay) {
+      obs = "";
+    } else if (treatAsAbsent) {
+      obs = hasAnyEntry ? "Incompleto" : "Falta";
+    } else if (hasPause) {
+      obs = "Pausa";
+    }
 
     const balanceClass = rawBalance < 0 ? "balance-neg" : "balance-pos";
 
     const rowHtml = `
 <tr>
-  <td>${escapeHtml(formatDateLabel(key))}</td>
-  <td>${escapeHtml(previsto)}</td>
+  <td class="align-left">${escapeHtml(formatDateLabel(key))}</td>
   <td>${escapeHtml(formatTime(ent1))}</td>
   <td>${escapeHtml(formatTime(saiAlmoco))}</td>
   <td>${escapeHtml(formatTime(voltaAlmoco))}</td>
   <td>${escapeHtml(formatTime(sai1))}</td>
+  <td>${escapeHtml(formatTime(saidaMeio))}</td>
+  <td>${escapeHtml(formatTime(voltaMeio))}</td>
   <td>${escapeHtml(formatTime(ent3))}</td>
   <td>${escapeHtml(formatTime(sai3))}</td>
   <td class="align-right">${escapeHtml(worked)}</td>
@@ -671,7 +708,7 @@ export async function GET(req: NextRequest) {
 
     return {
       key,
-      expectedMinutes: expected,
+      expectedMinutes: isFutureDay ? 0 : expected,
       workedMinutes,
       overtimeMinutes,
       balanceMinutes: rawBalance,
@@ -687,10 +724,10 @@ export async function GET(req: NextRequest) {
 
   const totalsHtml = `
 <tr>
-  <td colspan="8"><strong>Totais do mês</strong></td>
+  <td colspan="9" class="align-left"><strong>Totais do mês</strong></td>
   <td class="align-right"><strong>${escapeHtml(minutesToHHMM(totalWorked))}</strong></td>
   <td class="align-right"><strong>${escapeHtml(minutesToHHMM(totalOvertime))}</strong></td>
-  <td class="align-right"><strong>${escapeHtml(minutesToHHMM(totalBalance))}</strong></td>
+  <td class="align-right ${totalBalance < 0 ? "balance-neg" : "balance-pos"}"><strong>${escapeHtml(minutesToHHMM(totalBalance))}</strong></td>
   <td class="muted"></td>
 </tr>`;
 
