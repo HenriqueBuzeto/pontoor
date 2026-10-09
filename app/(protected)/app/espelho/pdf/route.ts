@@ -255,13 +255,14 @@ function buildHtml(params: {
     .muted { color: #64748b; }
 
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #0f172a; padding: 2.8px 4px; font-size: 8.2px; line-height: 1.15; text-align: center; }
+    th, td { border: 1px solid #0f172a; padding: 4.6px 4px; font-size: 8.8px; line-height: 1.25; text-align: center; }
     th {
       font-weight: 800;
       text-transform: uppercase;
-      font-size: 7.6px;
+      font-size: 8px;
       letter-spacing: 0.04em;
       background: #f8fafc;
+      padding: 5.5px 4px;
     }
     .table-zebra tbody tr:nth-child(odd) td { background: #ffffff; }
     .table-zebra tbody tr:nth-child(even) td { background: #f8fafc; }
@@ -272,7 +273,7 @@ function buildHtml(params: {
     .schedule-summary { font-size: 9px; display: grid; grid-template-columns: 72px 1fr; row-gap: 1.5px; column-gap: 8px; }
     .schedule-summary .k { font-weight: 800; }
     .sign {
-      margin-top: 26px;
+      margin-top: 55px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 36px;
@@ -281,10 +282,10 @@ function buildHtml(params: {
     }
     .sign-box {
       border-top: 1.5px solid #0f172a;
-      padding-top: 6px;
+      padding-top: 8px;
       text-align: center;
       color: #0f172a;
-      min-height: 48px;
+      min-height: 58px;
     }
     .sign-role {
       font-size: 9.5px;
