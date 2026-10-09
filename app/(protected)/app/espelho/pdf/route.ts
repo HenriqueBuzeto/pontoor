@@ -1,8 +1,6 @@
 import { NextRequest } from "next/server";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 import { getCurrentTenantId } from "@/lib/auth/get-tenant";
 import { getCurrentUser } from "@/lib/auth/server";
@@ -733,7 +731,14 @@ export async function GET(req: NextRequest) {
 </tr>`;
 
   const periodLabel = `De 01/${String(month).padStart(2, "0")}/${year} até ${String(daysInMonth).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
-  const issuedAtLabel = format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR });
+  const issuedAtLabel = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date());
 
   const html = buildHtml({
     tenantName: tenant?.name ?? "Tenant",
