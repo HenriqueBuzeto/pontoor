@@ -97,6 +97,20 @@ export function AjustesForm() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-ponto-muted">
+                Saída no meio do expediente (opcional)
+              </label>
+              <Input name="pauseStart" type="time" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ponto-muted">
+                Retorno do meio do expediente (opcional)
+              </label>
+              <Input name="pauseEnd" type="time" />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ponto-muted">
                 Início da hora extra (opcional)
               </label>
               <Input name="extraStart" type="time" />

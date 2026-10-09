@@ -12,6 +12,8 @@ type DayRow = {
   exit: string | null;
   lunchStart: string | null;
   lunchEnd: string | null;
+  pauseStart: string | null;
+  pauseEnd: string | null;
   extraStart: string | null;
   extraEnd: string | null;
   workedLabel: string;
@@ -31,6 +33,8 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
   const [reason, setReason] = useState("");
   const [lunchStart, setLunchStart] = useState("");
   const [lunchEnd, setLunchEnd] = useState("");
+  const [pauseStart, setPauseStart] = useState("");
+  const [pauseEnd, setPauseEnd] = useState("");
   const [extraStart, setExtraStart] = useState("");
   const [extraEnd, setExtraEnd] = useState("");
 
@@ -48,6 +52,8 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
       setReason("");
       setLunchStart("");
       setLunchEnd("");
+      setPauseStart("");
+      setPauseEnd("");
       setExtraStart("");
       setExtraEnd("");
     }
@@ -59,6 +65,8 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
     setEndTime(row.exit ?? "");
     setLunchStart(row.lunchStart ?? "");
     setLunchEnd(row.lunchEnd ?? "");
+    setPauseStart(row.pauseStart ?? "");
+    setPauseEnd(row.pauseEnd ?? "");
     setExtraStart(row.extraStart ?? "");
     setExtraEnd(row.extraEnd ?? "");
     setReason(`Solicito ajuste no dia ${row.displayDate}.`);
@@ -84,6 +92,8 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
             <th className="px-4 py-3 text-left font-medium text-ponto-muted">Saída</th>
             <th className="px-4 py-3 text-left font-medium text-ponto-muted">Início almoço</th>
             <th className="px-4 py-3 text-left font-medium text-ponto-muted">Fim almoço</th>
+            <th className="px-4 py-3 text-left font-medium text-ponto-muted">Saída meio exp.</th>
+            <th className="px-4 py-3 text-left font-medium text-ponto-muted">Volta meio exp.</th>
             <th className="px-4 py-3 text-left font-medium text-ponto-muted">Início extra</th>
             <th className="px-4 py-3 text-left font-medium text-ponto-muted">Fim extra</th>
             <th className="px-4 py-3 text-right font-medium text-ponto-muted">Horas trabalhadas</th>
@@ -108,6 +118,8 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
                 <td className="px-4 py-3">{r.exit ?? "—"}</td>
                 <td className="px-4 py-3">{r.lunchStart ?? "—"}</td>
                 <td className="px-4 py-3">{r.lunchEnd ?? "—"}</td>
+                <td className="px-4 py-3">{r.pauseStart ?? "—"}</td>
+                <td className="px-4 py-3">{r.pauseEnd ?? "—"}</td>
                 <td className="px-4 py-3">{r.extraStart ?? "00:00"}</td>
                 <td className="px-4 py-3">{r.extraEnd ?? "00:00"}</td>
                 <td className="px-4 py-3 text-right font-medium">{r.workedLabel}</td>
@@ -124,7 +136,7 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
                     </Button>
                   )}
                   {isExpanded && (
-                    <div className="mt-2 space-y-2 text-xs text-ponto-muted">
+                    <div className="mt-2 space-y-2 text-xs text-ponto-muted text-left">
                       <form action={formAction} className="space-y-2">
                         {!!employeeId && (
                           <input type="hidden" name="employeeId" value={employeeId} />
@@ -183,6 +195,26 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
                             type="time"
                             value={lunchEnd}
                             onChange={(e) => setLunchEnd(e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <label className="mb-1 block text-[11px] font-medium text-ponto-muted">
+                          Saída / Retorno meio expediente (se houver)
+                        </label>
+                        <div className="flex gap-2">
+                          <Input
+                            name="pauseStart"
+                            type="time"
+                            value={pauseStart}
+                            onChange={(e) => setPauseStart(e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                          <span className="self-center text-[11px] text-ponto-muted">até</span>
+                          <Input
+                            name="pauseEnd"
+                            type="time"
+                            value={pauseEnd}
+                            onChange={(e) => setPauseEnd(e.target.value)}
                             className="h-8 text-xs"
                           />
                         </div>

@@ -27,6 +27,8 @@ export async function approveAdjustmentAction(
   const expEndForm = ((formData.get("expEnd") as string) || "").trim();
   const lunchStartForm = ((formData.get("lunchStart") as string) || "").trim();
   const lunchEndForm = ((formData.get("lunchEnd") as string) || "").trim();
+  const pauseStartForm = ((formData.get("pauseStart") as string) || "").trim();
+  const pauseEndForm = ((formData.get("pauseEnd") as string) || "").trim();
   const extraStartForm = ((formData.get("extraStart") as string) || "").trim();
   const extraEndForm = ((formData.get("extraEnd") as string) || "").trim();
   if (!id) return { error: "ID inválido." };
@@ -37,6 +39,8 @@ export async function approveAdjustmentAction(
     expEnd: expEndForm,
     lunchStart: lunchStartForm,
     lunchEnd: lunchEndForm,
+    pauseStart: pauseStartForm,
+    pauseEnd: pauseEndForm,
     extraStart: extraStartForm,
     extraEnd: extraEndForm,
   });

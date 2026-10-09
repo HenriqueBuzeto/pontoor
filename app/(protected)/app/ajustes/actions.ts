@@ -46,6 +46,8 @@ export async function createAdjustmentAction(
     formData.has("endTime") ||
     formData.has("lunchStart") ||
     formData.has("lunchEnd") ||
+    formData.has("pauseStart") ||
+    formData.has("pauseEnd") ||
     formData.has("extraStart") ||
     formData.has("extraEnd");
 
@@ -58,6 +60,8 @@ export async function createAdjustmentAction(
   const endTime = normalizeTime((formData.get("endTime") as string) || "");
   const lunchStart = normalizeTime((formData.get("lunchStart") as string) || "");
   const lunchEnd = normalizeTime((formData.get("lunchEnd") as string) || "");
+  const pauseStart = normalizeTime((formData.get("pauseStart") as string) || "");
+  const pauseEnd = normalizeTime((formData.get("pauseEnd") as string) || "");
   const extraStart = normalizeTime((formData.get("extraStart") as string) || "");
   const extraEnd = normalizeTime((formData.get("extraEnd") as string) || "");
 
@@ -73,11 +77,15 @@ export async function createAdjustmentAction(
     if (lunchStart || lunchEnd) {
       detalhes.push(`- Almoço: ${lunchStart || "—"} até ${lunchEnd || "—"}`);
     }
+    if (pauseStart || pauseEnd) {
+      detalhes.push(`- Meio expediente: ${pauseStart || "—"} até ${pauseEnd || "—"}`);
+    }
     if (extraStart || extraEnd) {
       detalhes.push(`- Hora extra: ${extraStart || "—"} até ${extraEnd || "—"}`);
     }
     if (!startTime && !endTime) detalhes.push("- Expediente: — até —");
     if (!lunchStart && !lunchEnd) detalhes.push("- Almoço: — até —");
+    if (!pauseStart && !pauseEnd) detalhes.push("- Meio expediente: — até —");
     if (!extraStart && !extraEnd) detalhes.push("- Hora extra: — até —");
     reason = `${baseReason}\n\n${detalhes.join("\n")}`;
   }

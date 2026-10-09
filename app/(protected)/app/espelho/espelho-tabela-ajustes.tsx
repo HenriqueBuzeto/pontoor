@@ -44,6 +44,8 @@ export function EspelhoTabelaAjustes({ entries, employeeId }: Props) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [pauseStart, setPauseStart] = useState("");
+  const [pauseEnd, setPauseEnd] = useState("");
   const [reason, setReason] = useState("");
 
   const [state, formAction] = useActionState<CreateAdjustmentState, FormData>(
@@ -57,6 +59,8 @@ export function EspelhoTabelaAjustes({ entries, employeeId }: Props) {
       setExpandedDate(null);
       setStartTime("");
       setEndTime("");
+      setPauseStart("");
+      setPauseEnd("");
       setReason("");
     }
   }, [state?.success]);
@@ -171,6 +175,28 @@ export function EspelhoTabelaAjustes({ entries, employeeId }: Props) {
                           />
                         </div>
                         <label className="mb-1 block text-[11px] font-medium text-ponto-muted">
+                          Saída / Retorno meio expediente (se houver)
+                        </label>
+                        <div className="flex gap-2">
+                          <Input
+                            name="pauseStart"
+                            type="time"
+                            value={pauseStart}
+                            onChange={(e) => setPauseStart(e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                          <span className="self-center text-[11px] text-ponto-muted">
+                            até
+                          </span>
+                          <Input
+                            name="pauseEnd"
+                            type="time"
+                            value={pauseEnd}
+                            onChange={(e) => setPauseEnd(e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <label className="mb-1 block text-[11px] font-medium text-ponto-muted">
                           Descrição do ajuste
                         </label>
                         <Input
@@ -193,6 +219,8 @@ export function EspelhoTabelaAjustes({ entries, employeeId }: Props) {
                               setExpandedDate(null);
                               setStartTime("");
                               setEndTime("");
+                              setPauseStart("");
+                              setPauseEnd("");
                               setReason("");
                             }}
                           >
@@ -210,9 +238,25 @@ export function EspelhoTabelaAjustes({ entries, employeeId }: Props) {
                       size="sm"
                       className="h-8 px-3 text-xs rounded-full bg-ponto-orange text-white shadow-sm shadow-ponto-orange/40 hover:bg-ponto-orange/90 hover:shadow-md hover:shadow-ponto-orange/50 transition-all"
                       onClick={() => {
+                        const inEntry = day.items.find((i) => i.type === "clock_in");
+                        const outEntry = [...day.items].reverse().find((i) => i.type === "clock_out");
+                        const pStartEntry = day.items.find((i) => i.type === "pause_start");
+                        const pEndEntry = day.items.find((i) => i.type === "pause_end");
+
+                        const fmt = (d?: Date) =>
+                          d
+                            ? d.toLocaleTimeString("pt-BR", {
+                                timeZone: TZ,
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "";
+
                         setExpandedDate(day.key);
-                        setStartTime("");
-                        setEndTime("");
+                        setStartTime(fmt(inEntry?.time));
+                        setEndTime(fmt(outEntry?.time));
+                        setPauseStart(fmt(pStartEntry?.time));
+                        setPauseEnd(fmt(pEndEntry?.time));
                         setReason(`Solicito ajuste no dia ${displayDate}.`);
                       }}
                     >

@@ -61,6 +61,7 @@ function zonedWallTimeToUtcDate(input: {
 export type ParsedSchedule = {
   expediente: { start?: string; end?: string };
   almoco: { start?: string; end?: string };
+  pausa?: { start?: string; end?: string };
   extra: { start?: string; end?: string };
 };
 
@@ -71,6 +72,8 @@ export type ApproveAdjustmentOptions = {
   expEnd?: string;
   lunchStart?: string;
   lunchEnd?: string;
+  pauseStart?: string;
+  pauseEnd?: string;
   extraStart?: string;
   extraEnd?: string;
 };
@@ -87,6 +90,8 @@ export function buildScheduleFromForm(opts: ApproveAdjustmentOptions): ParsedSch
   const expEnd = normalizeTime(opts.expEnd);
   const lunchStart = normalizeTime(opts.lunchStart);
   const lunchEnd = normalizeTime(opts.lunchEnd);
+  const pauseStart = normalizeTime(opts.pauseStart);
+  const pauseEnd = normalizeTime(opts.pauseEnd);
   const extraStart = normalizeTime(opts.extraStart);
   const extraEnd = normalizeTime(opts.extraEnd);
 
@@ -95,6 +100,8 @@ export function buildScheduleFromForm(opts: ApproveAdjustmentOptions): ParsedSch
     expEnd ||
     lunchStart ||
     lunchEnd ||
+    pauseStart ||
+    pauseEnd ||
     extraStart ||
     extraEnd;
 
@@ -103,6 +110,7 @@ export function buildScheduleFromForm(opts: ApproveAdjustmentOptions): ParsedSch
   return {
     expediente: { start: expStart, end: expEnd },
     almoco: { start: lunchStart, end: lunchEnd },
+    pausa: { start: pauseStart, end: pauseEnd },
     extra: { start: extraStart, end: extraEnd },
   };
 }
@@ -128,6 +136,7 @@ export function extractScheduleFromReason(reason: string): ParsedSchedule | null
   return {
     expediente: parseLine("- Expediente:"),
     almoco: parseLine("- Almoço:"),
+    pausa: parseLine("- Meio expediente:"),
     extra: parseLine("- Hora extra:"),
   };
 }
@@ -154,6 +163,8 @@ export function buildEntriesFromSchedule(
   const end = toDate(schedule.expediente.end);
   const lunchStart = toDate(schedule.almoco.start);
   const lunchEnd = toDate(schedule.almoco.end);
+  const pauseStart = toDate(schedule.pausa?.start);
+  const pauseEnd = toDate(schedule.pausa?.end);
   const extraStart = toDate(schedule.extra.start);
   const extraEnd = toDate(schedule.extra.end);
 
@@ -167,6 +178,12 @@ export function buildEntriesFromSchedule(
   }
   if (lunchEnd) {
     items.push({ type: "break_end", occurredAt: lunchEnd });
+  }
+  if (pauseStart) {
+    items.push({ type: "pause_start", occurredAt: pauseStart });
+  }
+  if (pauseEnd) {
+    items.push({ type: "pause_end", occurredAt: pauseEnd });
   }
   if (end) {
     items.push({ type: "clock_out", occurredAt: end });

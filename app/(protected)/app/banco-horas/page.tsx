@@ -90,6 +90,8 @@ export default async function BancoHorasPage({
         lastOut: Date | null;
         lunchStart: Date | null;
         lunchEnd: Date | null;
+        pauseStart: Date | null;
+        pauseEnd: Date | null;
         extraStart: Date | null;
         extraEnd: Date | null;
         workedMinutes: number;
@@ -184,6 +186,8 @@ export default async function BancoHorasPage({
       lastOut: Date | null;
       lunchStart: Date | null;
       lunchEnd: Date | null;
+      pauseStart: Date | null;
+      pauseEnd: Date | null;
       extraStart: Date | null;
       extraEnd: Date | null;
       workedMinutes: number;
@@ -254,6 +258,8 @@ export default async function BancoHorasPage({
       let lastOut: Date | null = null;
       let lunchStart: Date | null = null;
       let lunchEnd: Date | null = null;
+      let pauseStart: Date | null = null;
+      let pauseEnd: Date | null = null;
       let extraStart: Date | null = null;
       let extraEnd: Date | null = null;
 
@@ -289,6 +295,13 @@ export default async function BancoHorasPage({
           if (type === "break_end" && lunchStart && !lunchEnd) {
             lunchEnd = time;
           }
+
+          if (type === "pause_start" && !pauseStart) {
+            pauseStart = time;
+          }
+          if (type === "pause_end" && !pauseEnd) {
+            pauseEnd = time;
+          }
         }
       }
 
@@ -298,6 +311,8 @@ export default async function BancoHorasPage({
         lastOut,
         lunchStart,
         lunchEnd,
+        pauseStart,
+        pauseEnd,
         extraStart,
         extraEnd,
         workedMinutes,
@@ -477,6 +492,20 @@ export default async function BancoHorasPage({
                     : null,
                   lunchEnd: r.lunchEnd
                     ? r.lunchEnd.toLocaleTimeString("pt-BR", {
+                        timeZone: TZ,
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : null,
+                  pauseStart: r.pauseStart
+                    ? r.pauseStart.toLocaleTimeString("pt-BR", {
+                        timeZone: TZ,
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : null,
+                  pauseEnd: r.pauseEnd
+                    ? r.pauseEnd.toLocaleTimeString("pt-BR", {
                         timeZone: TZ,
                         hour: "2-digit",
                         minute: "2-digit",

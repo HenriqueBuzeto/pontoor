@@ -33,6 +33,7 @@ function extractSchedule(reason: string) {
   // Espera linhas no padrão:
   // - Expediente: HH:MM até HH:MM
   // - Almoço: HH:MM até HH:MM
+  // - Meio expediente: HH:MM até HH:MM
   // - Hora extra: HH:MM até HH:MM
   const lines = reason.split(/\r?\n/).map((l) => l.trim());
   const get = (prefix: string) =>
@@ -44,6 +45,7 @@ function extractSchedule(reason: string) {
   return {
     expediente: get("- Expediente:"),
     almoco: get("- Almoço:"),
+    pausa: get("- Meio expediente:"),
     extra: get("- Hora extra:"),
     hasAny: lines.some((l) => l.startsWith("Horários informados para correção:")),
   };
@@ -110,6 +112,14 @@ export function JustificativasAdminList({ items }: { items: Item[] }) {
                               {schedule.almoco ?? "—"}
                             </span>
                           </div>
+                          {schedule.pausa && (
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="font-medium text-ponto-black">Meio expediente</span>
+                              <span className="font-mono">
+                                {schedule.pausa ?? "—"}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-center justify-between gap-3">
                             <span className="font-medium text-ponto-black">Hora extra</span>
                             <span className="font-mono">
@@ -139,6 +149,8 @@ export function JustificativasAdminList({ items }: { items: Item[] }) {
                     let expEnd = "";
                     let lunchStart = "";
                     let lunchEnd = "";
+                    let pauseStart = "";
+                    let pauseEnd = "";
                     let extraStart = "";
                     let extraEnd = "";
 
@@ -158,6 +170,11 @@ export function JustificativasAdminList({ items }: { items: Item[] }) {
                       lunchStart = p.start;
                       lunchEnd = p.end;
                     }
+                    if (schedule.pausa) {
+                      const p = parseInterval(schedule.pausa);
+                      pauseStart = p.start;
+                      pauseEnd = p.end;
+                    }
                     if (schedule.extra) {
                       const p = parseInterval(schedule.extra);
                       extraStart = p.start;
@@ -170,6 +187,8 @@ export function JustificativasAdminList({ items }: { items: Item[] }) {
                         <input type="hidden" name="expEnd" value={expEnd} />
                         <input type="hidden" name="lunchStart" value={lunchStart} />
                         <input type="hidden" name="lunchEnd" value={lunchEnd} />
+                        <input type="hidden" name="pauseStart" value={pauseStart} />
+                        <input type="hidden" name="pauseEnd" value={pauseEnd} />
                         <input type="hidden" name="extraStart" value={extraStart} />
                         <input type="hidden" name="extraEnd" value={extraEnd} />
                       </>
