@@ -270,6 +270,8 @@ function mapEntriesToSchedule(
   let lastOut: Date | null = null;
   let lunchStart: Date | null = null;
   let lunchEnd: Date | null = null;
+  let pauseStart: Date | null = null;
+  let pauseEnd: Date | null = null;
   let extraStart: Date | null = null;
   let extraEnd: Date | null = null;
 
@@ -300,6 +302,13 @@ function mapEntriesToSchedule(
     if (type === "break_end" && lunchStart && !lunchEnd) {
       lunchEnd = time;
     }
+
+    if (type === "pause_start" && !pauseStart) {
+      pauseStart = time;
+    }
+    if (type === "pause_end" && !pauseEnd) {
+      pauseEnd = time;
+    }
   }
 
   const toStr = (d: Date | null) => (d ? dateToTimeString(d, timeZone) : undefined);
@@ -307,6 +316,7 @@ function mapEntriesToSchedule(
   return {
     expediente: { start: toStr(firstIn), end: toStr(lastOut) },
     almoco: { start: toStr(lunchStart), end: toStr(lunchEnd) },
+    pausa: { start: toStr(pauseStart), end: toStr(pauseEnd) },
     extra: { start: toStr(extraStart), end: toStr(extraEnd) },
   };
 }
@@ -320,6 +330,10 @@ function mergeSchedules(existing: ParsedSchedule, incoming: ParsedSchedule): Par
     almoco: {
       start: incoming.almoco.start !== undefined ? incoming.almoco.start : existing.almoco.start,
       end: incoming.almoco.end !== undefined ? incoming.almoco.end : existing.almoco.end,
+    },
+    pausa: {
+      start: incoming.pausa?.start !== undefined ? incoming.pausa.start : existing.pausa?.start,
+      end: incoming.pausa?.end !== undefined ? incoming.pausa.end : existing.pausa?.end,
     },
     extra: {
       start: incoming.extra.start !== undefined ? incoming.extra.start : existing.extra.start,
