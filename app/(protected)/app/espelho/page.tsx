@@ -157,6 +157,18 @@ export default async function EspelhoPage({ searchParams }: Props) {
         type: "clock_out",
       });
     }
+
+    // Inclui marcações de saída e retorno no meio do expediente (pausa)
+    for (let i = 0; i < sorted.length; i++) {
+      const it = sorted[i];
+      if (it.type === "pause_start" || it.type === "pause_end") {
+        consolidatedEntries.push({
+          id: `${key}-${it.type}-${i}`,
+          occurredAt: it.time.toISOString(),
+          type: it.type,
+        });
+      }
+    }
   }
 
   const selectedEmployee = employees.find((e) => e.id === effectiveEmployeeId);

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogIn, LogOut, Coffee, CheckCircle2 } from "lucide-react";
+import { LogIn, LogOut, Coffee, CheckCircle2, PauseCircle, PlayCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { registerTimeEntry, getTodayEntries, type TodayEntry } from "./actions";
@@ -12,6 +12,8 @@ const types = [
   { id: "clock_in", label: "Entrada", icon: LogIn },
   { id: "break_start", label: "Início intervalo", icon: Coffee },
   { id: "break_end", label: "Fim intervalo", icon: Coffee },
+  { id: "pause_start", label: "Saída meio expediente", icon: PauseCircle },
+  { id: "pause_end", label: "Retorno meio expediente", icon: PlayCircle },
   { id: "clock_out", label: "Saída", icon: LogOut },
 ] as const;
 
@@ -81,7 +83,7 @@ export default function PontoPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {types.map(({ id, label, icon: Icon }) => (
           <Button
             key={id}

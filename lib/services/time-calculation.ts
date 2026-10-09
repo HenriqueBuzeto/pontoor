@@ -56,6 +56,9 @@ function calculateDayFromEntries(
   let extraStart: Date | null = null;
   let extraEnd: Date | null = null;
 
+  const pauses: { start: Date; end: Date | null }[] = [];
+  let currentPauseStart: Date | null = null;
+
   for (const item of sorted) {
     const { occurredAt: time, type } = item;
 
@@ -83,6 +86,23 @@ function calculateDayFromEntries(
     if (type === "break_end" && lunchStart && !lunchEnd) {
       lunchEnd = time;
     }
+
+    if (type === "pause_start") {
+      if (!currentPauseStart) {
+        currentPauseStart = time;
+      }
+    }
+    if (type === "pause_end") {
+      if (currentPauseStart) {
+        pauses.push({ start: currentPauseStart, end: time });
+        currentPauseStart = null;
+      }
+    }
+  }
+
+  // Se houver uma pausa aberta ainda sem retorno, guarda
+  if (currentPauseStart) {
+    pauses.push({ start: currentPauseStart, end: null });
   }
 
   let workedMinutes = 0;
@@ -116,11 +136,22 @@ function calculateDayFromEntries(
     );
   }
 
+  // Desconta pausas ocorridas durante o expediente (ex.: consulta médica, saída no meio do horário)
+  for (const p of pauses) {
+    if (p.end && p.end > p.start) {
+      const pauseDuration = Math.round((p.end.getTime() - p.start.getTime()) / 60000);
+      workedMinutes = Math.max(0, workedMinutes - pauseDuration);
+    }
+  }
+
+  const hasOpenPause = pauses.some((p) => p.end === null);
+
   const complete =
     !isSunday &&
     ((firstIn && lastOut) || (!firstIn && !lastOut)) &&
     (!lunchStart || !!lunchEnd) &&
-    (!extraStart || !!extraEnd);
+    (!extraStart || !!extraEnd) &&
+    !hasOpenPause;
 
   const expectedMinutes = isSunday ? 0 : 8 * 60;
   const balanceMinutes = workedMinutes - expectedMinutes;
@@ -216,6 +247,17 @@ export async function recalculateDayInTransaction(
     overtimeMinutes: Math.max(0, workedForBalance - expectedMinutes),
     absent: expectedMinutes > 0 && baseCalc.workedMinutes === 0,
   };
+
+  if (onVacation) {
+    calc = {
+      workedMinutes: 0,
+      expectedMinutes: 0,
+      balanceMinutes: 0,
+      overtimeMinutes: 0,
+      absent: false,
+      complete: true,
+    };
+  }
 
   if (isToday && isWorkDay && !calc.complete) {
     const now = new Date();

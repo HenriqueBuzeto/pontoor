@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getCurrentTenantId } from "@/lib/auth/get-tenant";
+import { getTenantById } from "@/lib/repositories/tenants";
 import { listTimeEntriesByTenant } from "@/lib/repositories/time-entry";
 import { listDailyCalculationsByTenant } from "@/lib/repositories/time-calculations";
 
@@ -37,11 +38,45 @@ export async function GET(req: NextRequest) {
 
   const fileBaseName = `relatorio-${tipo}-${String(mes).padStart(2, "0")}-${ano}`;
 
+  const [tenant] = await Promise.all([getTenantById(tenantId)]);
+  const tenantName = tenant?.name ?? "Empresa";
+
+  const renderSignaturesBlock = (employeeInfo?: { name?: string | null; registration?: string | null }) => {
+    const empName = employeeInfo?.name ? employeeInfo.name : "Colaborador";
+    const reg = employeeInfo?.registration ? ` (Matrícula: ${employeeInfo.registration})` : "";
+    return `
+      <section class="signatures-wrapper">
+        <p class="signatures-statement">
+          Declaro para os devidos fins que as informações e marcações constantes neste relatório refletem com exatidão a jornada e a frequência do período correspondente.
+        </p>
+        <div class="signatures-grid">
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-role">Assinatura do Colaborador</div>
+            <div class="sig-name">${empName}${reg}</div>
+            <div class="sig-date">Data: ____/____/________</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-role">Gestor / Recursos Humanos</div>
+            <div class="sig-name">${tenantName}</div>
+            <div class="sig-date">Data: ____/____/________</div>
+          </div>
+        </div>
+      </section>
+    `;
+  };
+
   if (tipo === "marcacoes") {
     const rows = await listTimeEntriesByTenant(tenantId, start, end, {
       limit: 5000,
       employeeId: employeeId || undefined,
     });
+
+    const singleEmployee = rows.length > 0 && rows.every((r) => r.employeeId === rows[0].employeeId) ? rows[0] : null;
+    const employeeInfo = singleEmployee
+      ? { name: singleEmployee.employeeName, registration: singleEmployee.registration }
+      : undefined;
 
     if (formato === "html") {
       const headerHtml = `
@@ -67,6 +102,8 @@ export async function GET(req: NextRequest) {
             clock_out: "Saída",
             break_start: "Saída almoço",
             break_end: "Retorno almoço",
+            pause_start: "Saída meio expediente",
+            pause_end: "Retorno meio expediente",
           };
           const tipoLabel = tipoLabelMap[r.type] ?? r.type;
           const origem = r.source === "manual_adjustment" ? "Ajuste manual" : r.source ?? "—";
@@ -96,7 +133,19 @@ export async function GET(req: NextRequest) {
     thead { background:#f3f4f6; }
     th, td { padding:8px 10px; border-bottom:1px solid #e5e7eb; text-align:left; }
     th { font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:#6b7280; }
-    tfoot { font-size:11px; color:#9ca3af; background:#f9fafb; }
+    .signatures-wrapper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed #d1d5db; page-break-inside: avoid; break-inside: avoid; }
+    .signatures-statement { font-size: 11px; color: #4b5563; margin-bottom: 24px; line-height: 1.5; font-style: italic; }
+    .signatures-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .sig-box { text-align: center; }
+    .sig-line { border-top: 1.5px solid #111827; margin-bottom: 8px; }
+    .sig-role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #111827; }
+    .sig-name { font-size: 11px; color: #374151; margin-top: 2px; }
+    .sig-date { font-size: 10px; color: #6b7280; margin-top: 6px; }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .container { box-shadow: none; border-radius: 0; max-width: 100%; }
+      .signatures-wrapper { page-break-inside: avoid; break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -123,6 +172,7 @@ export async function GET(req: NextRequest) {
           </tr>
         </tfoot>
       </table>
+      ${renderSignaturesBlock(employeeInfo)}
     </main>
   </div>
 </body>
@@ -149,6 +199,8 @@ export async function GET(req: NextRequest) {
         clock_out: "Saída",
         break_start: "Saída almoço",
         break_end: "Retorno almoço",
+        pause_start: "Saída meio expediente",
+        pause_end: "Retorno meio expediente",
       };
       const tipoLabel = tipoLabelMap[r.type] ?? r.type;
       const origem = r.source === "manual_adjustment" ? "Ajuste manual" : r.source ?? "—";
@@ -177,6 +229,11 @@ export async function GET(req: NextRequest) {
       tipo === "atrasos"
         ? calcRows.filter((r) => (r.lateMinutes ?? 0) > 0 || (r.earlyLeaveMinutes ?? 0) > 0)
         : calcRows.filter((r) => (r.overtimeMinutes ?? 0) > 0);
+
+    const singleEmployee = filtered.length > 0 && filtered.every((r) => r.employeeId === filtered[0].employeeId) ? filtered[0] : null;
+    const employeeInfo = singleEmployee
+      ? { name: singleEmployee.employeeName, registration: singleEmployee.registration }
+      : undefined;
 
     if (formato === "html") {
       const title =
@@ -239,6 +296,19 @@ export async function GET(req: NextRequest) {
     th, td { padding:8px 10px; border-bottom:1px solid #e5e7eb; text-align:left; }
     th { font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:#6b7280; }
     tfoot { font-size:11px; color:#9ca3af; background:#f9fafb; }
+    .signatures-wrapper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed #d1d5db; page-break-inside: avoid; break-inside: avoid; }
+    .signatures-statement { font-size: 11px; color: #4b5563; margin-bottom: 24px; line-height: 1.5; font-style: italic; }
+    .signatures-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .sig-box { text-align: center; }
+    .sig-line { border-top: 1.5px solid #111827; margin-bottom: 8px; }
+    .sig-role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #111827; }
+    .sig-name { font-size: 11px; color: #374151; margin-top: 2px; }
+    .sig-date { font-size: 10px; color: #6b7280; margin-top: 6px; }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .container { box-shadow: none; border-radius: 0; max-width: 100%; }
+      .signatures-wrapper { page-break-inside: avoid; break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -258,6 +328,7 @@ export async function GET(req: NextRequest) {
           ${bodyRows}
         </tbody>
       </table>
+      ${renderSignaturesBlock(employeeInfo)}
     </main>
   </div>
 </body>
@@ -317,6 +388,11 @@ export async function GET(req: NextRequest) {
       employeeId: employeeId || undefined,
     });
 
+    const singleEmployee = rows.length > 0 && rows.every((r) => r.employeeId === rows[0].employeeId) ? rows[0] : null;
+    const employeeInfo = singleEmployee
+      ? { name: singleEmployee.employeeName, registration: singleEmployee.registration }
+      : undefined;
+
     if (formato === "html") {
       const headerHtml = `
         <header style="padding:16px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
@@ -342,6 +418,8 @@ export async function GET(req: NextRequest) {
             clock_out: "Saída",
             break_start: "Saída almoço",
             break_end: "Retorno almoço",
+            pause_start: "Saída meio expediente",
+            pause_end: "Retorno meio expediente",
           };
           const tipoLabel = tipoLabelMap[r.type] ?? r.type;
 
@@ -369,6 +447,20 @@ export async function GET(req: NextRequest) {
     thead { background:#f3f4f6; }
     th, td { padding:8px 10px; border-bottom:1px solid #e5e7eb; text-align:left; }
     th { font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:#6b7280; }
+    tfoot { font-size:11px; color:#9ca3af; background:#f9fafb; }
+    .signatures-wrapper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed #d1d5db; page-break-inside: avoid; break-inside: avoid; }
+    .signatures-statement { font-size: 11px; color: #4b5563; margin-bottom: 24px; line-height: 1.5; font-style: italic; }
+    .signatures-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .sig-box { text-align: center; }
+    .sig-line { border-top: 1.5px solid #111827; margin-bottom: 8px; }
+    .sig-role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #111827; }
+    .sig-name { font-size: 11px; color: #374151; margin-top: 2px; }
+    .sig-date { font-size: 10px; color: #6b7280; margin-top: 6px; }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .container { box-shadow: none; border-radius: 0; max-width: 100%; }
+      .signatures-wrapper { page-break-inside: avoid; break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -388,7 +480,13 @@ export async function GET(req: NextRequest) {
         <tbody>
           ${bodyRows}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5">Total de marcações: ${rows.length}</td>
+          </tr>
+        </tfoot>
       </table>
+      ${renderSignaturesBlock(employeeInfo)}
     </main>
   </div>
 </body>
@@ -414,6 +512,8 @@ export async function GET(req: NextRequest) {
         clock_out: "Saída",
         break_start: "Saída almoço",
         break_end: "Retorno almoço",
+        pause_start: "Saída meio expediente",
+        pause_end: "Retorno meio expediente",
       };
       const tipoLabel = tipoLabelMap[r.type] ?? r.type;
       return [data, hora, r.employeeName ?? "—", r.registration ?? "—", tipoLabel]

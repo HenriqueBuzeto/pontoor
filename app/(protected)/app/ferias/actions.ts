@@ -28,12 +28,14 @@ export async function createFeriasAction(_prev: FeriasState, formData: FormData)
     const start = new Date(sYear, sMonth - 1, sDay);
     const end = new Date(eYear, eMonth - 1, eDay);
 
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const cur = new Date(start);
+    while (cur <= end) {
       await recalculateDay({
         tenantId,
         employeeId: user.employeeId,
-        date: new Date(d)
+        date: new Date(cur)
       });
+      cur.setDate(cur.getDate() + 1);
     }
 
     return { success: true };
@@ -64,12 +66,14 @@ export async function deleteFeriasAction(id: string): Promise<FeriasState> {
       const start = new Date(sYear, sMonth - 1, sDay);
       const end = new Date(eYear, eMonth - 1, eDay);
 
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const cur = new Date(start);
+      while (cur <= end) {
         await recalculateDay({
           tenantId,
           employeeId: user.employeeId,
-          date: new Date(d)
+          date: new Date(cur)
         });
+        cur.setDate(cur.getDate() + 1);
       }
     }
 

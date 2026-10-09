@@ -85,6 +85,8 @@ function validateNextTimeEntry(
   const clockOuts = count("clock_out");
   const breakStarts = count("break_start");
   const breakEnds = count("break_end");
+  const pauseStarts = count("pause_start");
+  const pauseEnds = count("pause_end");
 
   if (nextType === "break_start" || nextType === "break_end") {
     if (breakStarts > 1 || breakEnds > 1) return "Intervalo inválido para o dia.";
@@ -94,8 +96,10 @@ function validateNextTimeEntry(
   const hasMainOut = clockOuts >= 1;
   const hasExtraIn = clockIns >= 2;
   const hasExtraOut = clockOuts >= 2;
+  const inPause = pauseStarts > pauseEnds;
 
   if (nextType === "clock_in") {
+    if (inPause) return "Você está em saída no meio do expediente. Registre o retorno da pausa antes.";
     if (!hasMainIn) return null;
     if (hasMainIn && !hasMainOut) return "Você já registrou a entrada hoje.";
     if (hasMainOut && !hasExtraIn) return null;
@@ -105,6 +109,7 @@ function validateNextTimeEntry(
 
   if (nextType === "clock_out") {
     if (!hasMainIn) return "Registre a entrada antes da saída.";
+    if (inPause) return "Finalize a saída no meio do expediente (Retorno pausa) antes de registrar a saída do dia.";
     if (hasMainIn && !hasMainOut) {
       if (breakStarts === 1 && breakEnds === 0) return "Finalize o intervalo antes da saída.";
       return null;
@@ -119,6 +124,7 @@ function validateNextTimeEntry(
 
   if (nextType === "break_start") {
     if (!hasMainIn) return "Registre a entrada antes do intervalo.";
+    if (inPause) return "Finalize a pausa antes de iniciar o intervalo de almoço.";
     if (hasMainOut) return "Intervalo não pode ser registrado após a saída.";
     if (breakStarts >= 1) return "Você já iniciou o intervalo hoje.";
     return null;
@@ -128,6 +134,19 @@ function validateNextTimeEntry(
     if (breakStarts === 0) return "Inicie o intervalo antes de finalizá-lo.";
     if (hasMainOut) return "Intervalo não pode ser finalizado após a saída.";
     if (breakEnds >= 1) return "Você já finalizou o intervalo hoje.";
+    return null;
+  }
+
+  if (nextType === "pause_start") {
+    if (!hasMainIn) return "Registre a entrada antes de registrar saída no meio do expediente.";
+    if (hasMainOut && !hasExtraIn) return "Você já registrou a saída do expediente.";
+    if (breakStarts === 1 && breakEnds === 0) return "Você já está em intervalo de almoço.";
+    if (inPause) return "Você já registrou a saída no meio do expediente. Registre o retorno.";
+    return null;
+  }
+
+  if (nextType === "pause_end") {
+    if (!inPause) return "Nenhuma saída no meio do expediente aberta para retorno.";
     return null;
   }
 

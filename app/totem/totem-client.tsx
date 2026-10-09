@@ -7,12 +7,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Coffee, LogIn, LogOut, UserRound } from "lucide-react";
+import { CheckCircle2, Coffee, LogIn, LogOut, UserRound, PauseCircle, PlayCircle } from "lucide-react";
 
 const types = [
   { id: "clock_in", label: "Entrada", icon: LogIn },
   { id: "break_start", label: "Início intervalo", icon: Coffee },
   { id: "break_end", label: "Fim intervalo", icon: Coffee },
+  { id: "pause_start", label: "Saída meio expediente", icon: PauseCircle },
+  { id: "pause_end", label: "Retorno meio expediente", icon: PlayCircle },
   { id: "clock_out", label: "Saída", icon: LogOut },
 ] as const;
 
@@ -207,7 +209,7 @@ export default function TotemClient() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {types.map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}

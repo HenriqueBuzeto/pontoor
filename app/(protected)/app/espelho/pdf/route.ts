@@ -174,77 +174,80 @@ function buildHtml(params: {
   <meta charSet="utf-8" />
   <title>Cartão de Ponto</title>
   <style>
-    @page { size: A4; margin: 8mm; }
+    @page { size: A4 portrait; margin: 0; }
     * { box-sizing: border-box; }
     body {
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
       color: #0f172a;
       margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     .header {
       display: flex;
       justify-content: space-between;
-      gap: 16px;
-      padding: 0 0 6px 0;
+      gap: 12px;
+      padding-bottom: 4px;
       border-bottom: 2px solid #0f172a;
       align-items: flex-end;
     }
     .brand {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
     }
     .title {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 800;
       letter-spacing: -0.02em;
-      line-height: 1;
+      line-height: 1.1;
     }
     .subtitle {
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 500;
       color: #334155;
     }
     .pill {
-      margin-top: 6px;
+      margin-top: 3px;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       border: 1px solid #e2e8f0;
       background: #f8fafc;
       border-radius: 999px;
-      padding: 5px 9px;
-      font-size: 10px;
+      padding: 2px 8px;
+      font-size: 9px;
       color: #334155;
     }
     .meta {
-      font-size: 10px;
+      font-size: 8.5px;
       color: #334155;
       text-align: right;
       white-space: nowrap;
-      line-height: 1.45;
+      line-height: 1.35;
     }
     .meta strong { color: #0f172a; }
-    .grid { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 4px; }
     .card {
       border: 1px solid #0f172a;
-      border-radius: 12px;
-      padding: 5px;
+      border-radius: 8px;
+      padding: 4px 6px;
     }
     .card-title {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: #0f172a;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
     .kv {
-      font-size: 9.4px;
+      font-size: 8.5px;
       display: grid;
-      grid-template-columns: 92px 1fr;
-      row-gap: 2px;
-      column-gap: 10px;
+      grid-template-columns: 78px 1fr;
+      row-gap: 1px;
+      column-gap: 8px;
       align-items: baseline;
     }
     .k { color: #0f172a; font-weight: 800; }
@@ -252,12 +255,12 @@ function buildHtml(params: {
     .muted { color: #64748b; }
 
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #0f172a; padding: 4px 6px; font-size: 9.2px; }
+    th, td { border: 1px solid #0f172a; padding: 2px 4px; font-size: 8px; line-height: 1.15; }
     th {
       font-weight: 800;
       text-transform: uppercase;
-      font-size: 8.6px;
-      letter-spacing: 0.06em;
+      font-size: 7.5px;
+      letter-spacing: 0.05em;
       background: #f8fafc;
     }
     .table-zebra tbody tr:nth-child(odd) td { background: #ffffff; }
@@ -265,16 +268,37 @@ function buildHtml(params: {
     .align-right { text-align: right; }
     .balance-neg { color: #b91c1c; font-weight: 800; }
     .balance-pos { color: #0f172a; font-weight: 800; }
-    .schedule-summary { font-size: 9.2px; display: grid; grid-template-columns: 84px 1fr; row-gap: 2px; column-gap: 10px; }
+    .schedule-summary { font-size: 8.5px; display: grid; grid-template-columns: 70px 1fr; row-gap: 1px; column-gap: 8px; }
     .schedule-summary .k { font-weight: 800; }
-    .sign { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .sign > div {
-      border-top: 1px solid #0f172a;
+    .sign {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .sign-box {
+      border-top: 1.2px solid #0f172a;
       padding-top: 6px;
-      min-height: 44px;
-      font-size: 10px;
       text-align: center;
       color: #0f172a;
+    }
+    .sign-role {
+      font-size: 8.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .sign-name {
+      font-size: 8px;
+      color: #334155;
+      margin-top: 1px;
+    }
+    .sign-date {
+      font-size: 7.5px;
+      color: #64748b;
+      margin-top: 2px;
     }
   </style>
 </head>
@@ -282,40 +306,34 @@ function buildHtml(params: {
   <div class="header">
     <div class="brand">
       <div class="title">Cartão de Ponto</div>
-      <div class="subtitle">Documento oficial para conferência mensal</div>
       <div class="pill">
         <span><strong>${escapeHtml(params.tenantName)}</strong></span>
-        <span class="muted">|</span>
+        <span class="muted">•</span>
         <span>${escapeHtml(params.periodLabel)}</span>
       </div>
     </div>
     <div class="meta">
-      <div><strong>Emitido em</strong> ${escapeHtml(params.issuedAtLabel)}</div>
+      <div><strong>Emitido em:</strong> ${escapeHtml(params.issuedAtLabel)}</div>
       <div class="muted">Fuso: Brasília (America/Sao_Paulo)</div>
     </div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <div class="card-title">Colaborador e escala</div>
-      <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px; align-items: start;">
-        <div class="kv">
-          <div class="k">Nome:</div><div class="v">${escapeHtml(params.employeeName)}</div>
-          <div class="k">Matrícula:</div><div class="v">${escapeHtml(params.employeeRegistration)}</div>
-          <div class="k">CPF:</div><div class="v">${escapeHtml(params.employeeCpf)}</div>
-          <div class="k">Departamento:</div><div class="v">${escapeHtml(params.departmentLabel)}</div>
-        </div>
-        <div>
-          <div style="font-size:10px; font-weight:800; margin-bottom:4px;">${escapeHtml(params.scheduleLabel)}</div>
-          <div class="schedule-summary">
-            ${params.scheduleSummaryHtml}
-          </div>
+  <div class="card" style="margin-top: 4px;">
+    <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 8px; align-items: center;">
+      <div class="kv">
+        <div class="k">Colaborador:</div><div class="v"><strong>${escapeHtml(params.employeeName)}</strong> (Mat: ${escapeHtml(params.employeeRegistration)})</div>
+        <div class="k">CPF / Depto:</div><div class="v">${escapeHtml(params.employeeCpf)} • ${escapeHtml(params.departmentLabel)}</div>
+      </div>
+      <div style="font-size: 8px; border-left: 1px solid #e2e8f0; padding-left: 8px;">
+        <div style="font-weight: 800; text-transform: uppercase; color: #0f172a; margin-bottom: 2px;">${escapeHtml(params.scheduleLabel)}</div>
+        <div class="schedule-summary">
+          ${params.scheduleSummaryHtml}
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:10px; border-radius: 12px;">
+  <div class="card" style="margin-top: 4px; border-radius: 8px;">
     <div class="card-title">Lançamentos do período</div>
     <table class="table-zebra">
       <thead>
@@ -343,8 +361,16 @@ function buildHtml(params: {
     </table>
 
     <div class="sign">
-      <div>Assinatura do colaborador</div>
-      <div>Assinatura do responsável</div>
+      <div class="sign-box">
+        <div class="sign-role">Assinatura do Colaborador</div>
+        <div class="sign-name">${escapeHtml(params.employeeName)} (Matrícula: ${escapeHtml(params.employeeRegistration)})</div>
+        <div class="sign-date">Data: ____/____/________</div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-role">Responsável / RH</div>
+        <div class="sign-name">${escapeHtml(params.tenantName)}</div>
+        <div class="sign-date">Data: ____/____/________</div>
+      </div>
     </div>
   </div>
 </body>
@@ -572,14 +598,47 @@ export async function GET(req: NextRequest) {
 
     const previsto = previstoLabelForDay(key);
     const expected = Number(calc?.expectedMinutes ?? expectedMinutesForDay(key));
+    const weekday = weekdayForKey(key);
+    const isSaturday = weekday === 6;
 
     const hasAnyEntry = dayEntries.length > 0;
-    const mainComplete = !!(ent1 && saiAlmoco && voltaAlmoco && sai1);
+    // No sábado (ou em dias sem intervalo obrigatório), basta ter entrada e saída (ent1 e sai1).
+    // Nos dias de semana normais com intervalo previsto, espera-se entrada, intervalo e saída.
+    const hasRequiredBreak = !!(breakStartHHMM && breakEndHHMM);
+    const mainComplete = isSaturday || !hasRequiredBreak
+      ? !!(ent1 && sai1)
+      : !!(ent1 && saiAlmoco && voltaAlmoco && sai1);
+
     const treatAsAbsent = expected > 0 && isDayFinishedInTZ(key) && (!hasAnyEntry || !mainComplete);
 
-    const workedMinutes = treatAsAbsent ? 0 : Number(calc?.workedMinutes ?? 0);
-    const overtimeMinutes = treatAsAbsent ? 0 : Number(calc?.overtimeMinutes ?? 0);
-    const rawBalance = treatAsAbsent ? -expected : Number(calc?.balanceMinutes ?? 0);
+    // Se o dia não for tratado como falta, calcula ou usa o cálculo registrado
+    let calculatedWorked = Number(calc?.workedMinutes ?? 0);
+    if (!calc && ent1 && sai1) {
+      if (saiAlmoco && voltaAlmoco) {
+        calculatedWorked = Math.max(0, Math.round((saiAlmoco.getTime() - ent1.getTime()) / 60000)) +
+          Math.max(0, Math.round((sai1.getTime() - voltaAlmoco.getTime()) / 60000));
+      } else {
+        calculatedWorked = Math.max(0, Math.round((sai1.getTime() - ent1.getTime()) / 60000));
+      }
+      if (ent3 && sai3) {
+        calculatedWorked += Math.max(0, Math.round((sai3.getTime() - ent3.getTime()) / 60000));
+      }
+
+      // Desconta pausas ocorridas no dia
+      let pStart: Date | null = null;
+      for (const it of dayEntries) {
+        if (it.type === "pause_start" && !pStart) pStart = it.occurredAt;
+        if (it.type === "pause_end" && pStart) {
+          calculatedWorked = Math.max(0, calculatedWorked - Math.round((it.occurredAt.getTime() - pStart.getTime()) / 60000));
+          pStart = null;
+        }
+      }
+    }
+
+    const hasPause = dayEntries.some((e) => e.type === "pause_start");
+    const workedMinutes = treatAsAbsent ? 0 : calculatedWorked;
+    const rawBalance = treatAsAbsent ? -expected : (calc ? Number(calc.balanceMinutes ?? 0) : (workedMinutes - expected));
+    const overtimeMinutes = treatAsAbsent ? 0 : (calc ? Number(calc.overtimeMinutes ?? 0) : Math.max(0, rawBalance));
 
     const worked = minutesToHHMM(workedMinutes);
     const overtime = minutesToHHMM(overtimeMinutes);
@@ -588,7 +647,9 @@ export async function GET(req: NextRequest) {
       ? "Ajuste"
       : treatAsAbsent
         ? (hasAnyEntry ? "Incompleto" : "Falta")
-        : "";
+        : hasPause
+          ? "Saída ext."
+          : "";
 
     const balanceClass = rawBalance < 0 ? "balance-neg" : "balance-pos";
 
@@ -663,12 +724,12 @@ export async function GET(req: NextRequest) {
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "12mm", right: "12mm", bottom: "18mm", left: "12mm" },
+      margin: { top: "5mm", right: "8mm", bottom: "5mm", left: "8mm" },
       displayHeaderFooter: true,
       headerTemplate: "<div></div>",
       footerTemplate: `
-        <div style="width:100%;font-size:9px;padding:0 12mm;color:#374151;display:flex;justify-content:space-between;">
-          <div></div>
+        <div style="width:100%;font-size:8px;padding:0 8mm;color:#64748b;display:flex;justify-content:space-between;">
+          <div>Cartão de Ponto Oficial</div>
           <div>Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>
         </div>
       `,

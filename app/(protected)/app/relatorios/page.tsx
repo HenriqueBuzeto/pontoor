@@ -128,6 +128,8 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                       clock_out: "Saída",
                       break_start: "Saída almoço",
                       break_end: "Retorno almoço",
+                      pause_start: "Saída meio expediente",
+                      pause_end: "Retorno meio expediente",
                     };
 
                     const tipoLabel = tipoLabelMap[r.type] ?? r.type;
