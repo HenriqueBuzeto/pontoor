@@ -8,6 +8,35 @@ import { listTimeEntriesByTenant } from "@/lib/repositories/time-entry";
 import { listDailyCalculationsByTenant } from "@/lib/repositories/time-calculations";
 import { listEmployees } from "@/lib/repositories/employees";
 
+const TZ = "America/Sao_Paulo";
+
+function formatTimeSP(date: Date | null): string {
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function formatDateSP(date: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+  }).format(date);
+}
+
+function dateKeySP(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 type Props = { searchParams: Promise<{ tipo?: string; mes?: string; ano?: string; employeeId?: string }> };
 
 export default async function RelatoriosPage({ searchParams }: Props) {
@@ -120,8 +149,8 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                 <tbody className="divide-y divide-ponto-border/40 bg-ponto-white">
                   {rows.map((r) => {
                     const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-                    const data = format(occurred, "dd/MM/yyyy", { locale: ptBR });
-                    const hora = format(occurred, "HH:mm", { locale: ptBR });
+                    const data = formatDateSP(occurred);
+                    const hora = formatTimeSP(occurred);
 
                     const tipoLabelMap: Record<string, string> = {
                       clock_in: "Entrada",
@@ -187,7 +216,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
 
         for (const r of rows) {
           const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-          const keyDate = occurred.toISOString().slice(0, 10);
+          const keyDate = dateKeySP(occurred);
 
           if (!byEmployee.has(r.employeeId)) {
             byEmployee.set(r.employeeId, {
@@ -300,9 +329,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                               if (r.type === "clock_out") saida = occurred;
                             }
 
-                            const diaLabel = format(d.date, "dd/MM", { locale: ptBR });
-                            const fmt = (value: Date | null) =>
-                              value ? format(value, "HH:mm", { locale: ptBR }) : "—";
+                            const diaLabel = formatDateSP(d.date);
 
                             return (
                               <tr key={d.date.toISOString()}>
@@ -310,22 +337,22 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                                   {diaLabel}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
-                                  {fmt(entrada)}
+                                  {formatTimeSP(entrada)}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
-                                  {fmt(saidaAlmoco)}
+                                  {formatTimeSP(saidaAlmoco)}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
-                                  {fmt(retornoAlmoco)}
+                                  {formatTimeSP(retornoAlmoco)}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
-                                  {fmt(saidaMeio)}
+                                  {formatTimeSP(saidaMeio)}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
-                                  {fmt(voltaMeio)}
+                                  {formatTimeSP(voltaMeio)}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
-                                  {fmt(saida)}
+                                  {formatTimeSP(saida)}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-muted">
                                   {sorted.length}

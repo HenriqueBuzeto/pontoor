@@ -6,6 +6,36 @@ import { getTenantById } from "@/lib/repositories/tenants";
 import { listTimeEntriesByTenant } from "@/lib/repositories/time-entry";
 import { listDailyCalculationsByTenant } from "@/lib/repositories/time-calculations";
 
+const TZ = "America/Sao_Paulo";
+
+function formatTimeSP(date: Date | null): string {
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function formatDateSP(date: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function dateKeySP(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 function formatMinutesLabel(m: number) {
   const sign = m < 0 ? "-" : "";
   const abs = Math.abs(m);
@@ -95,8 +125,8 @@ export async function GET(req: NextRequest) {
         .map((r) => {
           const occurred =
             r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-          const data = format(occurred, "dd/MM/yyyy", { locale: ptBR });
-          const hora = format(occurred, "HH:mm", { locale: ptBR });
+          const data = formatDateSP(occurred);
+          const hora = formatTimeSP(occurred);
           const tipoLabelMap: Record<string, string> = {
             clock_in: "Entrada",
             clock_out: "Saída",
@@ -192,8 +222,8 @@ export async function GET(req: NextRequest) {
     const csvRows = rows.map((r) => {
       const occurred =
         r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-      const data = format(occurred, "dd/MM/yyyy", { locale: ptBR });
-      const hora = format(occurred, "HH:mm", { locale: ptBR });
+      const data = formatDateSP(occurred);
+      const hora = formatTimeSP(occurred);
       const tipoLabelMap: Record<string, string> = {
         clock_in: "Entrada",
         clock_out: "Saída",
@@ -427,7 +457,7 @@ export async function GET(req: NextRequest) {
 
       for (const r of rows) {
         const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-        const keyDate = occurred.toISOString().slice(0, 10);
+        const keyDate = dateKeySP(occurred);
 
         if (!byEmployee.has(r.employeeId)) {
           byEmployee.set(r.employeeId, {
@@ -479,18 +509,17 @@ export async function GET(req: NextRequest) {
                 if (r.type === "clock_out") saida = occurred;
               }
 
-              const diaLabel = format(d.date, "dd/MM/yyyy", { locale: ptBR });
-              const fmt = (val: Date | null) => (val ? format(val, "HH:mm", { locale: ptBR }) : "—");
+              const diaLabel = formatDateSP(d.date);
 
               return `
                 <tr>
                   <td>${diaLabel}</td>
-                  <td>${fmt(entrada)}</td>
-                  <td>${fmt(saidaAlmoco)}</td>
-                  <td>${fmt(retornoAlmoco)}</td>
-                  <td>${fmt(saidaMeio)}</td>
-                  <td>${fmt(voltaMeio)}</td>
-                  <td>${fmt(saida)}</td>
+                  <td>${formatTimeSP(entrada)}</td>
+                  <td>${formatTimeSP(saidaAlmoco)}</td>
+                  <td>${formatTimeSP(retornoAlmoco)}</td>
+                  <td>${formatTimeSP(saidaMeio)}</td>
+                  <td>${formatTimeSP(voltaMeio)}</td>
+                  <td>${formatTimeSP(saida)}</td>
                   <td style="text-align:center;">${sorted.length}</td>
                 </tr>
               `;
@@ -605,7 +634,7 @@ export async function GET(req: NextRequest) {
 
     for (const r of rows) {
       const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-      const keyDate = occurred.toISOString().slice(0, 10);
+      const keyDate = dateKeySP(occurred);
 
       if (!byEmployee.has(r.employeeId)) {
         byEmployee.set(r.employeeId, {
@@ -657,8 +686,8 @@ export async function GET(req: NextRequest) {
           if (r.type === "clock_out") saida = occurred;
         }
 
-        const dataStr = format(d.date, "dd/MM/yyyy", { locale: ptBR });
-        const fmt = (val: Date | null) => (val ? format(val, "HH:mm", { locale: ptBR }) : "");
+        const dataStr = formatDateSP(d.date);
+        const fmt = (val: Date | null) => (val ? formatTimeSP(val) : "");
 
         const line = [
           emp.employeeName ?? "—",
