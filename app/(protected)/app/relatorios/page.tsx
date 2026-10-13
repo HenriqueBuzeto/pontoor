@@ -253,6 +253,12 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                               Retorno almoço
                             </th>
                             <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-ponto-muted">
+                              Saída meio exp.
+                            </th>
+                            <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-ponto-muted">
+                              Volta meio exp.
+                            </th>
+                            <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-ponto-muted">
                               Saída
                             </th>
                             <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-ponto-muted">
@@ -277,6 +283,8 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                             let entrada: Date | null = null;
                             let saidaAlmoco: Date | null = null;
                             let retornoAlmoco: Date | null = null;
+                            let saidaMeio: Date | null = null;
+                            let voltaMeio: Date | null = null;
                             let saida: Date | null = null;
 
                             for (const r of sorted) {
@@ -287,6 +295,8 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                               if (r.type === "clock_in" && !entrada) entrada = occurred;
                               if (r.type === "break_start" && !saidaAlmoco) saidaAlmoco = occurred;
                               if (r.type === "break_end" && !retornoAlmoco) retornoAlmoco = occurred;
+                              if (r.type === "pause_start" && !saidaMeio) saidaMeio = occurred;
+                              if (r.type === "pause_end" && !voltaMeio) voltaMeio = occurred;
                               if (r.type === "clock_out") saida = occurred;
                             }
 
@@ -307,6 +317,12 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
                                   {fmt(retornoAlmoco)}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
+                                  {fmt(saidaMeio)}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
+                                  {fmt(voltaMeio)}
                                 </td>
                                 <td className="whitespace-nowrap px-3 py-2 text-[11px] text-ponto-black">
                                   {fmt(saida)}

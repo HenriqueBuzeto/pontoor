@@ -399,6 +399,11 @@ export async function GET(req: NextRequest) {
           <div>
             <div style="font-size:18px;font-weight:600;color:#111827;">Espelho de ponto</div>
             <div style="font-size:12px;color:#6b7280;">Período: ${periodoLabel}</div>
+            ${
+              singleEmployee
+                ? `<div style="font-size:12px;color:#374151;margin-top:2px;">Colaborador: <strong>${singleEmployee.employeeName ?? "—"}</strong> (Matrícula: ${singleEmployee.registration ?? "—"})</div>`
+                : ""
+            }
           </div>
           <div style="font-size:11px;color:#9ca3af;">Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm", {
             locale: ptBR,
@@ -406,31 +411,117 @@ export async function GET(req: NextRequest) {
         </header>
       `;
 
-      // Para simplificar, listamos uma linha por marcação (igual tela principal do relatório)
-      const bodyRows = rows
-        .map((r) => {
-          const occurred =
-            r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-          const data = format(occurred, "dd/MM/yyyy", { locale: ptBR });
-          const hora = format(occurred, "HH:mm", { locale: ptBR });
-          const tipoLabelMap: Record<string, string> = {
-            clock_in: "Entrada",
-            clock_out: "Saída",
-            break_start: "Saída almoço",
-            break_end: "Retorno almoço",
-            pause_start: "Saída meio expediente",
-            pause_end: "Retorno meio expediente",
-          };
-          const tipoLabel = tipoLabelMap[r.type] ?? r.type;
+      type DayBucket = {
+        date: Date;
+        items: typeof rows;
+      };
+
+      const byEmployee = new Map<
+        string,
+        {
+          employeeName: string | null;
+          registration: string | null;
+          days: Map<string, DayBucket>;
+        }
+      >();
+
+      for (const r of rows) {
+        const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
+        const keyDate = occurred.toISOString().slice(0, 10);
+
+        if (!byEmployee.has(r.employeeId)) {
+          byEmployee.set(r.employeeId, {
+            employeeName: r.employeeName ?? null,
+            registration: r.registration ?? null,
+            days: new Map(),
+          });
+        }
+
+        const emp = byEmployee.get(r.employeeId)!;
+        if (!emp.days.has(keyDate)) {
+          emp.days.set(keyDate, { date: occurred, items: [] });
+        }
+        emp.days.get(keyDate)!.items.push(r);
+      }
+
+      const employeesArray = Array.from(byEmployee.entries()).sort(([, a], [, b]) => {
+        const nameA = (a.employeeName ?? "").toLocaleLowerCase();
+        const nameB = (b.employeeName ?? "").toLocaleLowerCase();
+        return nameA.localeCompare(nameB, "pt-BR");
+      });
+
+      const tablesHtml = employeesArray
+        .map(([, emp]) => {
+          const daysArray = Array.from(emp.days.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+          const rowsHtml = daysArray
+            .map((d) => {
+              const sorted = [...d.items].sort((a, b) => {
+                const da = a.occurredAt instanceof Date ? a.occurredAt : new Date(a.occurredAt as unknown as string);
+                const db = b.occurredAt instanceof Date ? b.occurredAt : new Date(b.occurredAt as unknown as string);
+                return da.getTime() - db.getTime();
+              });
+
+              let entrada: Date | null = null;
+              let saidaAlmoco: Date | null = null;
+              let retornoAlmoco: Date | null = null;
+              let saidaMeio: Date | null = null;
+              let voltaMeio: Date | null = null;
+              let saida: Date | null = null;
+
+              for (const r of sorted) {
+                const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
+                if (r.type === "clock_in" && !entrada) entrada = occurred;
+                if (r.type === "break_start" && !saidaAlmoco) saidaAlmoco = occurred;
+                if (r.type === "break_end" && !retornoAlmoco) retornoAlmoco = occurred;
+                if (r.type === "pause_start" && !saidaMeio) saidaMeio = occurred;
+                if (r.type === "pause_end" && !voltaMeio) voltaMeio = occurred;
+                if (r.type === "clock_out") saida = occurred;
+              }
+
+              const diaLabel = format(d.date, "dd/MM/yyyy", { locale: ptBR });
+              const fmt = (val: Date | null) => (val ? format(val, "HH:mm", { locale: ptBR }) : "—");
+
+              return `
+                <tr>
+                  <td>${diaLabel}</td>
+                  <td>${fmt(entrada)}</td>
+                  <td>${fmt(saidaAlmoco)}</td>
+                  <td>${fmt(retornoAlmoco)}</td>
+                  <td>${fmt(saidaMeio)}</td>
+                  <td>${fmt(voltaMeio)}</td>
+                  <td>${fmt(saida)}</td>
+                  <td style="text-align:center;">${sorted.length}</td>
+                </tr>
+              `;
+            })
+            .join("");
 
           return `
-            <tr>
-              <td>${data}</td>
-              <td>${hora}</td>
-              <td>${r.employeeName ?? "—"}</td>
-              <td>${r.registration ?? "—"}</td>
-              <td>${tipoLabel}</td>
-            </tr>
+            <div style="margin-bottom:28px;">
+              ${
+                !singleEmployee
+                  ? `<div style="margin-bottom:8px;font-weight:600;font-size:13px;color:#111827;">${emp.employeeName ?? "—"} <span style="font-size:11px;color:#6b7280;font-weight:normal;">(Matrícula: ${emp.registration ?? "—"})</span></div>`
+                  : ""
+              }
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Entrada</th>
+                    <th>Saída almoço</th>
+                    <th>Retorno almoço</th>
+                    <th>Saída meio exp.</th>
+                    <th>Volta meio exp.</th>
+                    <th>Saída</th>
+                    <th style="text-align:center;">Marcações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
           `;
         })
         .join("");
@@ -467,25 +558,8 @@ export async function GET(req: NextRequest) {
   <div class="container">
     ${headerHtml}
     <main style="padding:16px 24px 20px 24px;">
-      <table>
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Hora</th>
-            <th>Colaborador</th>
-            <th>Matrícula</th>
-            <th>Tipo</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${bodyRows}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colspan="5">Total de marcações: ${rows.length}</td>
-          </tr>
-        </tfoot>
-      </table>
+      ${tablesHtml}
+      <div style="font-size:11px;color:#9ca3af;margin-top:8px;">Total geral de batidas registradas: ${rows.length}</div>
       ${renderSignaturesBlock(employeeInfo)}
     </main>
   </div>
@@ -501,27 +575,111 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const header = ["Data", "Hora", "Colaborador", "Matrícula", "Tipo"].join(";");
-    const csvRows = rows.map((r) => {
-      const occurred =
-        r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
-      const data = format(occurred, "dd/MM/yyyy", { locale: ptBR });
-      const hora = format(occurred, "HH:mm", { locale: ptBR });
-      const tipoLabelMap: Record<string, string> = {
-        clock_in: "Entrada",
-        clock_out: "Saída",
-        break_start: "Saída almoço",
-        break_end: "Retorno almoço",
-        pause_start: "Saída meio expediente",
-        pause_end: "Retorno meio expediente",
-      };
-      const tipoLabel = tipoLabelMap[r.type] ?? r.type;
-      return [data, hora, r.employeeName ?? "—", r.registration ?? "—", tipoLabel]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(";");
+    // CSV Estruturado nível sênior
+    const header = [
+      "Colaborador",
+      "Matrícula",
+      "Data",
+      "Entrada",
+      "Saída almoço",
+      "Retorno almoço",
+      "Saída meio exp.",
+      "Volta meio exp.",
+      "Saída",
+      "Total marcações",
+    ].join(";");
+
+    type DayBucket = {
+      date: Date;
+      items: typeof rows;
+    };
+
+    const byEmployee = new Map<
+      string,
+      {
+        employeeName: string | null;
+        registration: string | null;
+        days: Map<string, DayBucket>;
+      }
+    >();
+
+    for (const r of rows) {
+      const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
+      const keyDate = occurred.toISOString().slice(0, 10);
+
+      if (!byEmployee.has(r.employeeId)) {
+        byEmployee.set(r.employeeId, {
+          employeeName: r.employeeName ?? null,
+          registration: r.registration ?? null,
+          days: new Map(),
+        });
+      }
+
+      const emp = byEmployee.get(r.employeeId)!;
+      if (!emp.days.has(keyDate)) {
+        emp.days.set(keyDate, { date: occurred, items: [] });
+      }
+      emp.days.get(keyDate)!.items.push(r);
+    }
+
+    const csvLines: string[] = [header];
+
+    const employeesArray = Array.from(byEmployee.entries()).sort(([, a], [, b]) => {
+      const nameA = (a.employeeName ?? "").toLocaleLowerCase();
+      const nameB = (b.employeeName ?? "").toLocaleLowerCase();
+      return nameA.localeCompare(nameB, "pt-BR");
     });
 
-    const csv = [header, ...csvRows].join("\r\n");
+    for (const [, emp] of employeesArray) {
+      const daysArray = Array.from(emp.days.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      for (const d of daysArray) {
+        const sorted = [...d.items].sort((a, b) => {
+          const da = a.occurredAt instanceof Date ? a.occurredAt : new Date(a.occurredAt as unknown as string);
+          const db = b.occurredAt instanceof Date ? b.occurredAt : new Date(b.occurredAt as unknown as string);
+          return da.getTime() - db.getTime();
+        });
+
+        let entrada: Date | null = null;
+        let saidaAlmoco: Date | null = null;
+        let retornoAlmoco: Date | null = null;
+        let saidaMeio: Date | null = null;
+        let voltaMeio: Date | null = null;
+        let saida: Date | null = null;
+
+        for (const r of sorted) {
+          const occurred = r.occurredAt instanceof Date ? r.occurredAt : new Date(r.occurredAt as unknown as string);
+          if (r.type === "clock_in" && !entrada) entrada = occurred;
+          if (r.type === "break_start" && !saidaAlmoco) saidaAlmoco = occurred;
+          if (r.type === "break_end" && !retornoAlmoco) retornoAlmoco = occurred;
+          if (r.type === "pause_start" && !saidaMeio) saidaMeio = occurred;
+          if (r.type === "pause_end" && !voltaMeio) voltaMeio = occurred;
+          if (r.type === "clock_out") saida = occurred;
+        }
+
+        const dataStr = format(d.date, "dd/MM/yyyy", { locale: ptBR });
+        const fmt = (val: Date | null) => (val ? format(val, "HH:mm", { locale: ptBR }) : "");
+
+        const line = [
+          emp.employeeName ?? "—",
+          emp.registration ?? "—",
+          dataStr,
+          fmt(entrada),
+          fmt(saidaAlmoco),
+          fmt(retornoAlmoco),
+          fmt(saidaMeio),
+          fmt(voltaMeio),
+          fmt(saida),
+          sorted.length.toString(),
+        ]
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(";");
+
+        csvLines.push(line);
+      }
+    }
+
+    const csv = csvLines.join("\r\n");
     const fileName = `${fileBaseName}.csv`;
     return new Response(csv, {
       status: 200,
