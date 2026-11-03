@@ -126,7 +126,7 @@ export function extractScheduleFromReason(reason: string): ParsedSchedule | null
     const rest = line.slice(prefix.length).trim(); // ex.: "08:00 até 18:00"
     const [start, , end] = rest.split(" ");
     const isEmptyTime = (t?: string) =>
-      !t || t === "—";
+      !t || t === "—" || t === "00:00";
     return {
       start: !isEmptyTime(start) ? start : undefined,
       end: !isEmptyTime(end) ? end : undefined,
@@ -429,12 +429,12 @@ export async function approveAdjustmentWithRecalculation(
       });
 
       const existingSchedule = mapEntriesToSchedule(beforeEntries, TZ);
-      const mergedSchedule = mergeSchedules(existingSchedule, schedule);
-      const items = buildEntriesFromSchedule(date, mergedSchedule);
+      const effectiveSchedule = schedule.pausa !== undefined ? schedule : mergeSchedules(existingSchedule, schedule);
+      const items = buildEntriesFromSchedule(date, effectiveSchedule);
 
-      console.log("[approveAdjustment] merged schedule", {
+      console.log("[approveAdjustment] final schedule", {
         date,
-        mergedSchedule,
+        effectiveSchedule,
         items: items.map((it) => ({ type: it.type, occurredAt: it.occurredAt.toISOString() })),
       });
 
