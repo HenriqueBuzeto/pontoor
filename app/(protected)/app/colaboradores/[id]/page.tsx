@@ -2,6 +2,7 @@ import { getCurrentTenantId } from "@/lib/auth/get-tenant";
 import { getCurrentUser } from "@/lib/auth/server";
 import { isAdmin } from "@/lib/auth/is-admin";
 import { getEmployeeById } from "@/lib/repositories/employees";
+import { getUserByEmployeeId } from "@/lib/repositories/users";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditarColaboradorClient } from "./page-client";
 
@@ -39,19 +40,26 @@ export default async function EditarColaboradorPage({ params }: Props) {
     );
   }
 
+  const linkedUser = await getUserByEmployeeId(tenantId, employee.id);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-ponto-black">Editar colaborador</h1>
-        <p className="text-ponto-muted">Atualize os dados do cadastro</p>
+        <p className="text-ponto-muted">Atualize os dados cadastrais e de acesso</p>
       </div>
 
       <Card className="border-ponto-border shadow-lux">
         <CardHeader>
-          <CardTitle className="text-base">Dados principais</CardTitle>
+          <CardTitle className="text-base">Dados do Colaborador</CardTitle>
         </CardHeader>
         <CardContent>
-          <EditarColaboradorClient employeeId={employee.id} initialName={employee.name} />
+          <EditarColaboradorClient
+            employeeId={employee.id}
+            initialName={employee.name}
+            canAdmin={canAdmin}
+            userEmail={linkedUser?.email}
+          />
         </CardContent>
       </Card>
     </div>

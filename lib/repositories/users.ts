@@ -37,10 +37,26 @@ export async function updateUserName(userId: string, name: string) {
   return updated ?? null;
 }
 
+export async function updateUserPassword(userId: string, passwordHash: string) {
+  const db = getDb();
+  const [updated] = await db
+    .update(users)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning();
+  return updated ?? null;
+}
+
 export async function getUserByEmployeeId(tenantId: string, employeeId: string) {
   const db = getDb();
   const [row] = await db
-    .select({ id: users.id, name: users.name })
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      active: users.active,
+    })
     .from(users)
     .where(and(eq(users.tenantId, tenantId), eq(users.employeeId, employeeId)))
     .limit(1);
