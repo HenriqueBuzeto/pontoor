@@ -9,6 +9,7 @@ import { getEmployeeById } from "@/lib/repositories/employees";
 import { getWorkScheduleById } from "@/lib/repositories/work-schedules";
 import { listTimeEntriesByEmployee } from "@/lib/repositories/time-entry";
 import { listDailyCalculationsByEmployee } from "@/lib/repositories/time-calculations";
+import { listAdjustments } from "@/lib/repositories/adjustments";
 import { listHolidaysByRange } from "@/lib/repositories/holidays";
 import { getNationalHolidaySet } from "@/lib/services/holidays";
 
@@ -418,11 +419,20 @@ export async function GET(req: NextRequest) {
 
   const { start, end } = getMonthRangeInTZ(year, month);
 
-  const [schedule, entries, calcs] = await Promise.all([
+  const [schedule, entries, calcs, approvedAdjustments] = await Promise.all([
     employee.workScheduleId ? getWorkScheduleById(tenantId, employee.workScheduleId) : Promise.resolve(null),
     listTimeEntriesByEmployee(tenantId, employee.id, start, end),
     listDailyCalculationsByEmployee(tenantId, employee.id, year, month),
+    listAdjustments(tenantId, { employeeId: employee.id, status: "approved", limit: 500 }),
   ]);
+
+  const justifiedMap = new Map<string, string>();
+  for (const a of approvedAdjustments) {
+    if (a.type === "justified_absence" || a.type === "vacation") {
+      const k = a.date instanceof Date ? a.date.toISOString().slice(0, 10) : String(a.date).slice(0, 10);
+      justifiedMap.set(k, a.type);
+    }
+  }
 
   const workScheduleLabel = schedule?.name ?? "Escala";
   const scheduleEntry = schedule?.entryTime ?? null;
@@ -622,8 +632,11 @@ export async function GET(req: NextRequest) {
       ? !!(ent1 && sai1)
       : !!(ent1 && saiAlmoco && voltaAlmoco && sai1);
 
-    // Se for dia futuro ou dia de hoje em andamento, não contabiliza como falta nem negativa
-    const treatAsAbsent = !isFutureDay && !isToday && expected > 0 && (!hasAnyEntry || !mainComplete);
+    const isJustified = justifiedMap.has(key);
+    const justifiedType = justifiedMap.get(key);
+
+    // Se for dia futuro, hoje em andamento, ou dia justificado/atestado/férias, não contabiliza como falta nem negativa
+    const treatAsAbsent = !isFutureDay && !isToday && !isJustified && expected > 0 && (!hasAnyEntry || !mainComplete);
 
     let calculatedWorked = Number(calc?.workedMinutes ?? 0);
     if (!calc && ent1 && sai1) {
@@ -658,6 +671,10 @@ export async function GET(req: NextRequest) {
       rawBalance = 0;
       overtimeMinutes = 0;
       workedMinutes = 0;
+    } else if (isJustified) {
+      rawBalance = 0;
+      overtimeMinutes = 0;
+      workedMinutes = calculatedWorked;
     } else if (treatAsAbsent) {
       rawBalance = -expected;
       overtimeMinutes = 0;
@@ -676,7 +693,9 @@ export async function GET(req: NextRequest) {
     const balance = minutesToHHMM(rawBalance);
 
     let obs = "";
-    if (dayEntries.some((e) => e.source === "manual_adjustment")) {
+    if (isJustified) {
+      obs = justifiedType === "vacation" ? "Férias" : "Atestado";
+    } else if (dayEntries.some((e) => e.source === "manual_adjustment")) {
       obs = "Ajuste";
     } else if (isFutureDay) {
       obs = "";

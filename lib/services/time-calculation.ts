@@ -1,6 +1,6 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import { getDb, type Db } from "@/lib/db";
-import { employees, timeEntries, timeCalculations, workSchedules } from "@/lib/db/schema";
+import { adjustments, employees, timeEntries, timeCalculations, workSchedules } from "@/lib/db/schema";
 import { isManualHoliday } from "@/lib/repositories/holidays";
 import { isNationalHoliday } from "@/lib/services/holidays";
 import { isOnVacation } from "@/lib/repositories/vacations";
@@ -234,8 +234,33 @@ export async function recalculateDayInTransaction(
 
   const onVacation = await isOnVacation(tenantId, employeeId, dateKey);
 
+  // Verifica se há ajuste aprovado de falta justificada / atestado ou férias para este dia
+  const startDay = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 0, 0, 0, 0);
+  const endDay = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 23, 59, 59, 999);
+
+  const approvedJustifications = await tx
+    .select({
+      id: adjustments.id,
+      type: adjustments.type,
+    })
+    .from(adjustments)
+    .where(
+      and(
+        eq(adjustments.tenantId, tenantId),
+        eq(adjustments.employeeId, employeeId),
+        gte(adjustments.date, startDay),
+        lte(adjustments.date, endDay),
+        eq(adjustments.status, "approved")
+      )
+    );
+
+  const hasApprovedJustifiedAbsence = approvedJustifications.some(
+    (a) => a.type === "justified_absence" || a.type === "vacation"
+  );
+
   const defaultExpectedMinutes = weekday === 6 ? 4 * 60 : 8 * 60;
-  const expectedMinutes = isHoliday || onVacation ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? defaultExpectedMinutes) : 0;
+  const isZeroExpected = isHoliday || onVacation || hasApprovedJustifiedAbsence;
+  const expectedMinutes = isZeroExpected ? 0 : isWorkDay ? (scheduleRow?.dailyHours ?? defaultExpectedMinutes) : 0;
 
   const holidayMultiplier = isHoliday && baseCalc.workedMinutes > 0 ? 2 : 1;
   const workedForBalance = baseCalc.workedMinutes * holidayMultiplier;
@@ -248,9 +273,9 @@ export async function recalculateDayInTransaction(
     absent: expectedMinutes > 0 && baseCalc.workedMinutes === 0,
   };
 
-  if (onVacation) {
+  if (onVacation || (hasApprovedJustifiedAbsence && baseCalc.workedMinutes === 0)) {
     calc = {
-      workedMinutes: 0,
+      workedMinutes: baseCalc.workedMinutes,
       expectedMinutes: 0,
       balanceMinutes: 0,
       overtimeMinutes: 0,

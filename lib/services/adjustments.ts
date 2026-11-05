@@ -470,6 +470,15 @@ export async function approveAdjustmentWithRecalculation(
         employeeId: adj.employeeId,
         date,
       });
+    } else {
+      // Mesmo sem marcações a sobrescrever (ex: justificativa de falta justificada / atestado / férias),
+      // devemos recalcular o dia para atualizar os cálculos diários no banco de dados.
+      const date = new Date(adj.date);
+      await recalculateDayInTransaction(tx, {
+        tenantId,
+        employeeId: adj.employeeId,
+        date,
+      });
     }
 
     return { ok: true as const };
