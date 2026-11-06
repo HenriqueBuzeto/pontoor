@@ -151,6 +151,7 @@ export function BancoHorasTabelaAjustes({ rows, employeeId }: Props) {
                             defaultValue="other"
                           >
                             <option value="other">Correção de horário</option>
+                            <option value="day_off">Folga (compensatória / concedida)</option>
                             <option value="justified_absence">
                               Falta justificada / atestado (não contar horas)
                             </option>

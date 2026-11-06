@@ -100,7 +100,7 @@ export default async function AppHomePage() {
 
     const justifiedDays = new Set(
       approvedAbsences
-        .filter((a) => a.type === "justified_absence" || a.type === "vacation")
+        .filter((a) => a.type === "justified_absence" || a.type === "vacation" || a.type === "day_off")
         .map((a) => a.date.toISOString().slice(0, 10))
     );
 

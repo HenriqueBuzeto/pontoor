@@ -255,7 +255,7 @@ export async function recalculateDayInTransaction(
     );
 
   const hasApprovedJustifiedAbsence = approvedJustifications.some(
-    (a) => a.type === "justified_absence" || a.type === "vacation"
+    (a) => a.type === "justified_absence" || a.type === "vacation" || a.type === "day_off"
   );
 
   const defaultExpectedMinutes = weekday === 6 ? 4 * 60 : 8 * 60;

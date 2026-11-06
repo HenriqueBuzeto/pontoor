@@ -18,6 +18,7 @@ export const adjustmentTypes = [
   "external_work",  // trabalho externo
   "justified_absence", // falta justificada / atestado (não contabiliza horas)
   "vacation",       // férias (não contabiliza horas)
+  "day_off",        // folga / folga compensatória / evento (não contabiliza horas)
   "other",
 ] as const;
 export type AdjustmentType = (typeof adjustmentTypes)[number];

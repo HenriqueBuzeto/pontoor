@@ -97,6 +97,7 @@ export default async function BancoHorasPage({
         workedMinutes: number;
         dayBalanceMinutes: number;
         justified: boolean;
+        justifiedType?: string | null;
       }[]
     | null = null;
   let monthBalanceMinutes = 0;
@@ -136,10 +137,10 @@ export default async function BancoHorasPage({
       if (key >= startKey && key <= endKey) holidaySet.add(key);
     }
 
-    const justifiedDays = new Set<string>();
+    const justifiedDays = new Map<string, string>();
     for (const a of approvedAdjustments) {
-      if (a.type === "justified_absence" || a.type === "vacation") {
-        justifiedDays.add(a.date.toISOString().slice(0, 10));
+      if (a.type === "justified_absence" || a.type === "vacation" || a.type === "day_off") {
+        justifiedDays.set(a.date.toISOString().slice(0, 10), a.type);
       }
     }
 
@@ -193,6 +194,7 @@ export default async function BancoHorasPage({
       workedMinutes: number;
       dayBalanceMinutes: number;
       justified: boolean;
+      justifiedType?: string | null;
     }[] = [];
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -318,6 +320,7 @@ export default async function BancoHorasPage({
         workedMinutes,
         dayBalanceMinutes,
         justified: isJustifiedDay,
+        justifiedType: justifiedDays.get(key) ?? null,
       });
     }
 
@@ -530,7 +533,11 @@ export default async function BancoHorasPage({
                   workedLabel: formatMinutes(r.workedMinutes),
                   dayBalanceLabel: formatMinutes(r.dayBalanceMinutes),
                   justifiedLabel: r.justified
-                    ? "Falta justificada / atestado"
+                    ? r.justifiedType === "day_off"
+                      ? "Folga concedida"
+                      : r.justifiedType === "vacation"
+                      ? "Férias"
+                      : "Falta justificada / atestado"
                     : null,
                 }))}
               />

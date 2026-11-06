@@ -46,7 +46,7 @@ export default async function AdminBancoHorasPage({ searchParams }: { searchPara
   // Mapa de faltas justificadas por colaborador e dia
   const justifiedByEmployee = new Map<string, Set<string>>();
   for (const a of adjustments) {
-    if (a.type === "justified_absence") {
+    if (a.type === "justified_absence" || a.type === "vacation" || a.type === "day_off") {
       const key = a.date.toISOString().slice(0, 10);
       const set = justifiedByEmployee.get(a.employeeId) ?? new Set<string>();
       set.add(key);

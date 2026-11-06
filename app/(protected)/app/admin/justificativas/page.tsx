@@ -6,6 +6,9 @@ import { JustificativasAdminList } from "./justificativas-admin-list";
 const TYPE_LABEL: Record<string, string> = {
   late: "Atraso",
   absence: "Falta",
+  day_off: "Folga",
+  justified_absence: "Atestado / Justificada",
+  vacation: "Férias",
   forgot_mark: "Esquecimento",
   early_leave: "Saída antecipada",
   external_work: "Trabalho externo",

@@ -428,7 +428,7 @@ export async function GET(req: NextRequest) {
 
   const justifiedMap = new Map<string, string>();
   for (const a of approvedAdjustments) {
-    if (a.type === "justified_absence" || a.type === "vacation") {
+    if (a.type === "justified_absence" || a.type === "vacation" || a.type === "day_off") {
       const k = a.date instanceof Date ? a.date.toISOString().slice(0, 10) : String(a.date).slice(0, 10);
       justifiedMap.set(k, a.type);
     }
@@ -694,7 +694,7 @@ export async function GET(req: NextRequest) {
 
     let obs = "";
     if (isJustified) {
-      obs = justifiedType === "vacation" ? "Férias" : "Atestado";
+      obs = justifiedType === "day_off" ? "Folga" : justifiedType === "vacation" ? "Férias" : "Atestado";
     } else if (dayEntries.some((e) => e.source === "manual_adjustment")) {
       obs = "Ajuste";
     } else if (isFutureDay) {

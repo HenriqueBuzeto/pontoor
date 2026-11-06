@@ -21,6 +21,7 @@ type Item = {
 const TYPE_LABEL: Record<string, string> = {
   late: "Atraso",
   absence: "Falta (não justificada)",
+  day_off: "Folga (compensatória / concedida)",
   justified_absence: "Falta justificada / atestado (não contar horas)",
   vacation: "Férias (não contabilizar horas)",
   forgot_mark: "Esquecimento de marcação",

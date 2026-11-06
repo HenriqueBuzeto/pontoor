@@ -78,10 +78,10 @@ export async function GET(req: NextRequest) {
     if (key >= startKey && key <= endKey) holidaySet.add(key);
   }
 
-  const justifiedDays = new Set<string>();
+  const justifiedDays = new Map<string, string>();
   for (const a of approvedAdjustments) {
-    if (a.type === "justified_absence" || a.type === "vacation") {
-      justifiedDays.add(a.date.toISOString().slice(0, 10));
+    if (a.type === "justified_absence" || a.type === "vacation" || a.type === "day_off") {
+      justifiedDays.set(a.date.toISOString().slice(0, 10), a.type);
     }
   }
 
